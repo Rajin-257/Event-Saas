@@ -1387,19 +1387,19 @@ ul.countdown li p {
 #ajax-form input:focus,
 #ajax-form textarea:active,
 #ajax-form input:active,
-.subscribe input:active,
-.subscribe input:focus {	
+.otp input:active,
+.otp input:focus {	
 	border-bottom:1px solid #f8ae2c;
 }
 #ajax-form button:hover{
 	background-color: #f8ae2c;
 }
-.subscribe{
+.otp{
 	position:relative;
 	width: 100%;
 	display:block;
 }
-.subscribe input{
+.otp input{
 	position:relative;
 	width: 100%;
 	padding-left:20px;
@@ -1417,45 +1417,45 @@ ul.countdown li p {
 	-webkit-transition: border-bottom 0.3s, color 0.3s;
 	transition: border-bottom 0.3s, color 0.3s;
 }
-.subscribe input {	
+.otp input {	
 	border-bottom:1px solid rgba(255,255,255,.2);
 }
-.subscribe input:focus {	 
+.otp input:focus {	 
     outline: none !important;
 }
-.subscribe input:focus {	 
+.otp input:focus {	 
     outline: none !important;
 }
-.subscribe input:-ms-input-placeholder  {
+.otp input:-ms-input-placeholder  {
 	font-size: 14px;
 	letter-spacing:1px;
 	color:#ccc;
 	opacity:.5;
 }
-.subscribe input::-moz-placeholder  {
+.otp input::-moz-placeholder  {
 	font-size: 14px;
 	letter-spacing:1px;
 	color:#ccc;
 	opacity:.5;
 }
-.subscribe input:-moz-placeholder  {
+.otp input:-moz-placeholder  {
 	font-size: 14px;
 	letter-spacing:1px;
 	color:#ccc;
 	opacity:.5;
 }
-.subscribe input::-webkit-input-placeholder  {
+.otp input::-webkit-input-placeholder  {
 	font-size: 14px;
 	letter-spacing:1px;
 	color:#ccc;
 	opacity:.5;
 }
-.subscribe button{
+.otp button{
 	position:absolute;
 	font-family: 'FontAwesome';
 	width:30px;
 	right:0;
-	top:0;
+	top:10;
 	height:30px;
 	font-size: 26px;
 	line-height:30px;
@@ -1474,21 +1474,21 @@ ul.countdown li p {
     -ms-transition: all 300ms linear;
     transition: all 300ms linear;
 }
-.subscribe button:hover{
+.otp button:hover{
 	color: #f8ae2c;
 }
-.subscribe button:focus,
-.subscribe button:active {
+.otp button:focus,
+.otp button:active {
 	border:none;
 	outline:none;
 }
-.subscribe-text{
+.otp-text{
 	position:relative;
 	width: 100%;
 	display:block;
 	padding-top:10px;
 }
-.subscribe-text p{
+.otp-text p{
 	text-align: left;
 	font-size: 13px;
 	line-height:23px;
@@ -1673,6 +1673,176 @@ ul.countdown li p {
 		display: none;
 	}
 }
+
+
+
+/* Ticket Css*/
+
+.ticket-container {
+	width: 850px;
+	height: 320px;
+	background: linear-gradient(-45deg, #ff6b6b, #4ecdc4, #45b7d1, #96c93d);
+	background-size: 400% 400%;
+	animation: disco 15s ease infinite;
+	border-radius: 24px;
+	padding: 4px;
+	position: relative;
+	overflow: hidden;
+	box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+	display: none;
+  }
+
+  .ticket-inner {
+	background: rgba(255, 255, 255, 0.9);
+	height: 100%;
+	border-radius: 20px;
+	display: flex;
+	position: relative;
+	overflow: hidden;
+  }
+
+  .left-section {
+	flex: 2;
+	padding: 30px;
+	position: relative;
+	z-index: 1;
+  }
+
+  .right-section {
+	flex: 1;
+	background: rgba(0, 0, 0, 0.8);
+	padding: 30px;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	align-items: center;
+	clip-path: polygon(20% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+
+  .event-name {
+	font-size: 30px;
+	font-weight: 700;
+	background: linear-gradient(45deg, #FF4B2B, #FF416C, #4ECDC4);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	text-transform: uppercase;
+	letter-spacing: -1px;
+	margin-bottom: 25px;
+	position: relative;
+	animation: groove 3s ease-in-out infinite;
+  }
+
+  .vinyl-record {
+	width: 60px;
+	height: 60px;
+	background: #000;
+	border-radius: 50%;
+	position: absolute;
+	top: -10px;
+	right: -10px;
+	border: 3px solid #333;
+	animation: float 3s ease-in-out infinite;
+  }
+
+  .vinyl-record::after {
+	content: '';
+	position: absolute;
+	width: 20px;
+	height: 20px;
+	background: #fff;
+	border-radius: 50%;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+  }
+
+  .event-details {
+	background: rgba(255, 255, 255, 0.9);
+	padding: 20px;
+	border-radius: 15px;
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .detail-row {
+	display: flex;
+	align-items: center;
+	margin-bottom: 12px;
+	position: relative;
+	overflow: hidden;
+  }
+
+  .label {
+	font-size: 14px;
+	color: #666;
+	width: 120px;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+  }
+
+  .value {
+	font-size: 16px;
+	font-weight: 400;
+	color: #333;
+	position: relative;
+  }
+
+  .qr-code {
+	width: 140px;
+	height: 140px;
+	position: relative;
+	top: 40px;
+	left: 20px;
+	background: white;
+	padding: 10px;
+	border-radius: 15px;
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+	transform: rotate(-3deg);
+	transition: transform 0.3s ease;
+  }
+
+  .qr-code:hover {
+	transform: rotate(0deg) scale(1.05);
+  }
+
+  .admission-number {
+	position: relative;
+	top: 30px;
+	color: white;
+	font-size: 14px;
+	letter-spacing: 2px;
+	text-align: center;
+	margin-top: 20px;
+	text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+
+  .price {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	background: linear-gradient(45deg, #FF416C, #FF4B2B);
+	padding: 12px 25px;
+	border-radius: 30px;
+	color: white;
+	font-weight: 700;
+	font-size: 24px;
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+	animation: pulse 2s ease-in-out infinite;
+  }
+
+  .price span {
+	font-size: 16px;
+	opacity: 0.8;
+  }
+  
+  .wavy-line {
+	position: absolute;
+	bottom: 20px;
+	left: 0;
+	width: 100%;
+	height: 2px;
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  }
 
 
 

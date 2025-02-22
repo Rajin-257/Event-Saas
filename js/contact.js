@@ -38,6 +38,13 @@
 					error = true;
 				}
 
+				var tel =$('input#tel').val();
+				if(tel == "" || tel ==" "){
+					$('#err-tel').fadeIn('slow'); // error - empty
+					error = true;
+				}
+
+
 				if(error == true) {
 					$('#err-form').slideDown('slow');
 					return false;
@@ -67,6 +74,65 @@
 
 				return false; // stops user browser being directed to the php file
 			}); // end click function
+	
+			// Bind click event to button to trigger validation
+			$('button[id="tickit-vld-email"]').on('click', function() {
+				validateEmailOrPhone(); // Run the validation when the button is clicked
+			});
+
+			// Function to validate the email or phone number
+			function validateEmailOrPhone() {
+				$('.error').fadeOut('slow'); // Reset error messages
+	
+				var error = false;
+	
+				// Validate email or phone number (input field with id #email-otp)
+				var email_or_phone = $('#email-otp').val(); 
+				var email_compare = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+				var phone_compare = /^[0-9]{10}$/; // Assuming phone number should be 10 digits
+	
+				if (email_or_phone == "" || email_or_phone == " ") {
+					$('#err-email-otp').fadeIn('slow'); // Show error message if empty
+					error = true;
+				} else if (!email_compare.test(email_or_phone) && !phone_compare.test(email_or_phone)) {
+					$('#err-emailvld-otp').fadeIn('slow'); // Show error if it's neither valid email nor phone number
+					error = true;
+				}
+	
+				// If there's any error, prevent further actions
+				if (error == true) {
+					return false; // Prevent further actions if validation fails
+				}
+	
+				// Optionally, you can show a success message if validation passes
+				alert("Validation successful!");
+			}
+
+			$('button[id="otp-vld"]').on('click', function() {
+				validateOtp(); // Run the validation when the button is clicked
+			});
+
+			function validateOtp() {
+				$('.error').fadeOut('slow'); // Reset error messages
+			
+				var error = false;
+			
+				var otp = $('#otp').val();
+				if (otp == "" || otp == " ") {
+					$('#err-otp').fadeIn('slow'); // Show error if empty
+					error = true;
+				}
+			
+				// If there's any error, show the general form error
+				if (error == true) {
+					return false; // Prevent further action if validation fails
+				}
+			
+				// If validation is successful, show the ticket
+				$(".ticket-container").fadeIn('slow');
+			}
+			
 		});
 		
   })(jQuery); 
+
