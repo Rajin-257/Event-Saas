@@ -1,0 +1,25 @@
+<div class="page-title-box">
+    @@if (context.title !== undefined) {
+    <div class="d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+        <div class="flex-grow-1">
+            <h4 class="font-18 mb-0">@@title</h4>
+        </div>
+
+        <div class="text-end">
+            <ol class="breadcrumb m-0 py-0">
+                <li class="breadcrumb-item"><a href="javascript: void(0);">Simple</a></li>
+                @@if (context.subtitle !== undefined) {
+                <li class="breadcrumb-item"><a href="javascript: void(0);">@@subtitle</a></li>
+                }
+                <li class="breadcrumb-item active">@@title</li>
+            </ol>
+        </div>
+    </div>
+    }
+
+    @@if (context.title === undefined) {
+    <div class="d-flex align-items-sm-center flex-sm-row flex-column">
+        <h4 class="font-18 mb-0">Welcome</h4>
+    </div>
+    }
+</div>
