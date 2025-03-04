@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <%- include("../partials/title-meta.ejs", {title: "User Profile"}) %>
+    <%- include('../partials/head-css.ejs') %>
+</head>
+
+<body>
+    <!-- Begin page -->
+    <div class="wrapper">
+
+        <%- include('../partials/menu.ejs') %>
+
+        <!-- ============================================================== -->
+        <!-- Start Page Content here -->
+        <!-- ============================================================== -->
+        <div class="page-content">
+
+            <div class="page-container">
+
+                <%- include("../partials/page-title.ejs", {subtitle: "Account", title: "Profile"}) %>
+
+                <div class="row">
+                    <div class="col-lg-4 col-xl-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="text-center mt-3">
+                                    <img src="/backend/images/users/avatar-1.jpg" alt="Profile Image" 
+                                         class="rounded-circle avatar-xl img-thumbnail mb-3">
+                                    <h4 class="mb-1"><%= user.name %></h4>
+                                    <p class="text-muted mb-2"><%= user.role %></p>
+                                    <div class="text-center mt-3">
+                                        <a href="/user/edit-profile" class="btn btn-soft-primary btn-sm">Edit Profile</a>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+
+                                <h5 class="mt-3">Contact Information</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <th scope="row">Email</th>
+                                                <td><%= user.email %></td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Phone</th>
+                                                <td><%= user.mobile || 'Not provided' %></td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Location</th>
+                                                <td><%= user.address || 'Not specified' %></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="mt-0 mb-3">Skills</h5>
+                                <div>
+                                        <span class="badge badge-soft-primary me-1 my-1">Test 1</span>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8 col-xl-8">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="mt-0 mb-3">Recent Activity</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-hover mails m-0 table table-actions-bar table-centered">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Activity</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                    <td>activity.date </td>
+                                                    <td>activity.description </td>
+                                                    <td>
+                                                        <span class="b">
+                                                            activity Status
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="mt-0 mb-3">Performance Analytics</h5>
+                                <div class="row">
+                                    <div class="col-xl-4 col-sm-6 widget-inline-box">
+                                        <div class="text-center p-3">
+                                            <h2 class="mt-2"><i class="text-primary mdi mdi-chart-line me-2"></i> <b> user.projectsCompleted </b></h2>
+                                            <p class="text-muted mb-0">Projects Completed</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xl-4 col-sm-6 widget-inline-box">
+                                        <div class="text-center p-3">
+                                            <h2 class="mt-2"><i class="text-success mdi mdi-clock me-2"></i> <b> user.averageProjectTime </b></h2>
+                                            <p class="text-muted mb-0">Avg. Project Time</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xl-4 col-sm-6">
+                                        <div class="text-center p-3">
+                                            <h2 class="mt-2"><i class="text-info mdi mdi-star me-2"></i> <b>user.performanceRating </b></h2>
+                                            <p class="text-muted mb-0">Performance Rating</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- end row -->
+
+            </div> <!-- container -->
+
+            <%- include('../partials/footer.ejs') %>
+
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- End Page content -->
+        <!-- ============================================================== -->
+
+    </div>
+    <!-- END wrapper -->
+
+    <%- include('../partials/customizer.ejs') %>
+
+    <%- include('../partials/footer-scripts.ejs') %>
+
+</body>
+
+</html>

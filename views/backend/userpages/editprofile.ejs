@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <%- include("../partials/title-meta.ejs", {title: "User Profile"}) %>
+    <%- include('../partials/head-css.ejs') %>
+</head>
+
+
+<body>
+    <!-- Begin page -->
+    <div class="wrapper">
+
+        <%- include('../partials/menu.ejs') %>
+
+        <!-- ============================================================== -->
+        <!-- Start Page Content here -->
+        <!-- ============================================================== -->
+        <div class="page-content">
+
+            <div class="page-container">
+
+                <%- include("../partials/page-title.ejs", {subtitle: "Account", title: "Edit Profile"}) %>
+
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="mb-0">Edit Profile</h4>
+                            </div>
+                            <% if(success_msg && success_msg.length > 0){ %>
+                              <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <%= success_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            <% } %>
+                          
+                            <% if(error_msg && error_msg.length > 0){ %>
+                              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <%= error_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            <% } %>
+                          
+                            <% if(error && error.length > 0){ %>
+                              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <%= error %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            <% } %>
+                            <div class="card-body p-4">
+                                <form action="/user/profile?_method=PUT" method="POST" enctype="multipart/form-data">
+                                    <div class="mb-4 text-center">
+                                        <div class="avatar-wrapper mx-auto">
+                                            <% if (user.avatar) { %>
+                                                <img src="<%= user.avatar %>" alt="Avatar" class="avatar-xl rounded-circle mb-3">
+                                            <% } else { %>
+                                                <div class="avatar-placeholder rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center">
+                                                    <span class="text-white fs-1"><%= user.name.charAt(0).toUpperCase() %></span>
+                                                </div>
+                                            <% } %>
+                                            <div class="mt-2">
+                                                <label for="avatar" class="btn btn-sm btn-outline-primary">
+                                                    <i class="mdi mdi-camera me-2"></i>Change Picture
+                                                </label>
+                                                <input type="file" id="avatar" name="avatar" accept="image/*" class="d-none">
+                                                <p class="selected-file-name mt-1 small text-muted" id="selectedFileName"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="mb-3">
+                                        <label for="name" class="form-label">name</label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            id="name" 
+                                            name="name"
+                                            value="<%= user.name %>"
+                                        >
+                                        
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email</label>
+                                        <input 
+                                            type="email" 
+                                            class="form-control" 
+                                            id="email" 
+                                            value="<%= user.email %>"
+                                            disabled
+                                        >
+                                        <div class="form-text text-muted">Email cannot be changed.</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input 
+                                            type="tel" 
+                                            class="form-control" 
+                                            id="phone" 
+                                            name="mobile" 
+                                            value="<%= user.mobile || '' %>"
+                                            placeholder="Enter your phone number"
+                                        >
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="location" class="form-label">Location</label>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            id="location" 
+                                            name="address" 
+                                            value="<%= user.address || '' %>"
+                                            placeholder="Enter your current location"
+                                        >
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-4">
+                                        <a href="/user/profile" class="btn btn-outline-secondary">
+                                            <i class="mdi mdi-arrow-left me-2"></i>Cancel
+                                        </a>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="mdi mdi-content-save me-2"></i>Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- end row -->
+
+            </div> <!-- container -->
+
+            <%- include('../partials/footer.ejs') %>
+
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- End Page content -->
+        <!-- ============================================================== -->
+
+    </div>
+    <!-- END wrapper -->
+
+    <%- include('../partials/customizer.ejs') %>
+
+    <%- include('../partials/footer-scripts.ejs') %>
+
+    <style>
+        .avatar-xl {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+        }
+        
+        .avatar-placeholder {
+            width: 120px;
+            height: 120px;
+            background-color: #007bff;
+        }
+    </style>
+
+    <script>
+        // Show selected file name
+        document.getElementById('avatar').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : '';
+            document.getElementById('selectedFileName').textContent = fileName;
+        });
+
+        // Initialize Select2 for skills
+        $(document).ready(function() {
+            $('.select2').select2({
+                placeholder: 'Select skills',
+                tags: true
+            });
+        });
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
