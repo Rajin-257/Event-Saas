@@ -29,7 +29,6 @@ router.post(
 router.get("/register", redirectIfAuthenticated, authController.getRegister);
 router.post(
   "/register",
-  redirectIfAuthenticated,
   validate(registerValidation),
   authController.postRegister,
 );
@@ -65,5 +64,14 @@ router.post(
 
 // Logout route
 router.get("/logout", authController.logout);
+
+router.post(
+  "/user/register",
+  validate(registerValidation),
+  authController.postuserRegister,
+);
+
+router.post("/user/edit", authController.updateRole);
+router.post("/user/delete", authController.deleteUser);
 
 module.exports = router;

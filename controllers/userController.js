@@ -150,9 +150,20 @@ exports.updatePassword = async (req, res, next) => {
   }
 };
 
-exports.getScreenLock = async (req, res) => {
-  res.render("backend/auth/lock-screen", {
-    title: "Screen lock",
-    user: req.user,
-  });
+exports.getUserDetails = async (req, res) => {
+  try {
+    // Fetch all users from the database
+    const users = await User.findAll();
+
+    res.render("backend/userpages/user-details", {
+      title: "User's",
+      user: req.user,
+      users: users, // Pass all users to the view
+      formData: req.flash("formData")[0] || req.user,
+    });
+  } catch (error) {
+    // Handle any errors
+    req.flash("error_msg", "Unable to fetch users");
+    res.redirect("/user/dashboard");
+  }
 };
