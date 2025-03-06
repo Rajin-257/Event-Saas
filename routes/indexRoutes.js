@@ -5,7 +5,7 @@ const {
   validate,
   contactFormValidation,
 } = require("../middlewares/validation");
-const { isAuthenticated, protect } = require("../middlewares/auth");
+const { isAuthenticated } = require("../middlewares/auth");
 
 // Apply isAuthenticated middleware to all routes
 router.use(isAuthenticated);

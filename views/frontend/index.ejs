@@ -7,24 +7,13 @@
 	<!-- Basic Page Needs
 	================================================== -->
 	<meta charset="utf-8">
+	<% if (frontData.webtitle) { %>
+	<title><%= frontData.webtitle || 'Home' %></title>
+    <% } %>
 	<title>Aoide</title>
 	<meta name="description"  content="Event Template" />
 	<meta name="author" content="IG Design">
 	<meta name="keywords"  content="ig design, website, design, html5, css3, jquery, creative, clean, animated, portfolio, blog, one-page, multi-page, corporate, business," />
-	<meta property="og:title" content="Event Template" />
-	<meta property="og:type" content="website" />
-	<meta property="og:url" content="" />
-	<meta property="og:image" content="" />
-	<meta property="og:image:width" content="470" />
-	<meta property="og:image:height" content="246" />
-	<meta property="og:site_name" content="" />
-	<meta property="og:description" content="Event Template" />
-	<meta name="twitter:card" content="" />
-	<meta name="twitter:site" content="" />
-	<meta name="twitter:domain" content="http://ivang-design.com/" />
-	<meta name="twitter:title" content="" />
-	<meta name="twitter:description" content="Event Template" />
-	<meta name="twitter:image" content="http://ivang-design.com/" />
 
 	<!-- Mobile Specific Metas
 	================================================== -->
@@ -48,7 +37,9 @@
 			
 	<!-- Favicons
 	================================================== -->
-	<link rel="icon" type="image/png" href="favicon.png">
+	<% if (frontData.fav) { %>
+    <link rel="icon" href="<%= frontData.fav %>" type="image/x-icon">
+    <% } %>
 	<link rel="apple-touch-icon" href="apple-touch-icon.png">
 	<link rel="apple-touch-icon" sizes="72x72" href="apple-touch-icon-72x72.png">
 	<link rel="apple-touch-icon" sizes="114x114" href="apple-touch-icon-114x114.png">
@@ -69,9 +60,11 @@
 			================================================== -->
 			
 			<a href="/">
-				<div class="logo">
-					<img src="/frontend/img/logo.png" alt="">
-				</div>
+				<% if (frontData.Logo) { %>
+            		<div class="logo">
+            		    <img src="<%= frontData.Logo %>" >
+            		</div>
+            	<% } %>
 			</a>
 			
 			<a href="#ticket-wrap" class="ticket-link">
@@ -93,8 +86,12 @@
 					three-days ticket <em>................</em> <span>$100</span><br>
 					four-days ticket <em>.................</em> <span>$125</span>
 				</p>
-				
-				<a href="/auth/login"><%= user.name %></a>
+
+				<% if (!isAuthenticated) { %>
+        		  <a href="/auth/login" class="btn btn-outline-primary btn-lg">Login</a>
+        		<% } else { %>
+        		  <a href="/user/dashboard" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        		<% } %>
 			</div>
 			
 			<div class="content">
@@ -107,7 +104,9 @@
 				</nav>
 				<div class="event-time">
 					<div class="section">
-						<div class="hero-main-title">Bringing Leaders Together</div>
+						<% if (frontData.title) { %>
+							<div class="hero-main-title"><%= frontData.title || 'Home' %></div>
+    					<% } %>
 						<div class="hero-title">July 27</div>
 						<div class="hero-subtitle"><span>2</span><span>0</span><span>1</span><span>4</span></div>
 					</div>
@@ -325,7 +324,9 @@
 								<div class="container">
 									<div class="row">
 										<div class="col-md-12">
-											<img src="/frontend/img/logo.png" alt="">
+											<% if (frontData.Logo) { %>
+            		    						<img src="<%= frontData.Logo %>" >
+            								<% } %>
 											<h6 class="mt-5 mb-3">Get in touch:</h6>
 											<p>office@aoide.com</p>
 											<p>+1 325 2532</p>
@@ -569,7 +570,9 @@
 								<div class="container">
 									<div class="row">
 										<div class="col-md-12">
-											<img src="/frontend/img/logo.png" alt="">
+											<% if (frontData.Logo) { %>
+            		    						<img src="<%= frontData.Logo %>" >
+            								<% } %>
 											<h6 class="mt-5 mb-3">Get in touch:</h6>
 											<p>office@aoide.com</p>
 											<p>+1 325 2532</p>
@@ -737,7 +740,9 @@
 								<div class="container">
 									<div class="row">
 										<div class="col-md-12">
-											<img src="/frontend/img/logo.png" alt="">
+											<% if (frontData.Logo) { %>
+            		    						<img src="<%= frontData.Logo %>" >
+            								<% } %>
 											<h6 class="mt-5 mb-3">Get in touch:</h6>
 											<p>office@aoide.com</p>
 											<p>+1 325 2532</p>
@@ -859,7 +864,9 @@
 								<div class="container">
 									<div class="row">
 										<div class="col-md-12">
-											<img src="/frontend/img/logo.png" alt="">
+											<% if (frontData.Logo) { %>
+            		    						<img src="<%= frontData.Logo %>" >
+            								<% } %>
 											<h6 class="mt-5 mb-3">Get in touch:</h6>
 											<p>office@aoide.com</p>
 											<p>+1 325 2532</p>
@@ -965,7 +972,9 @@
 								<div class="container">
 									<div class="row">
 										<div class="col-md-12">
-											<img src="/frontend/img/logo.png" alt="">
+											<% if (frontData.Logo) { %>
+            		    						<img src="<%= frontData.Logo %>" >
+            								<% } %>
 											<h6 class="mt-5 mb-3">Get in touch:</h6>
 											<p>office@aoide.com</p>
 											<p>+1 325 2532</p>
@@ -987,13 +996,27 @@
 			</div>
 			
 			<div class="location-fixed">
-				<p>Cruise Terminal, 37 Shing Road, Hong Kong</p>
+				<% if (menuSettings.address_status && frontData.office_location) { %>
+            	<p><%= frontData.office_location %></p>
+            	<% } %>
+				
 			</div>
 			
+			
+
 			<div class="social-fixed">
-				<a href="#">twitter</a>
-				<a href="#">facebook</a>
-				<a href="#">behance</a>
+				<% if (menuSettings.fb_status && frontData.soc_fb) { %>
+            	<a href="<%= frontData.soc_fb %>">facebook</a>
+            	<% } %>
+					
+            	<% if (menuSettings.insta_status && frontData.soc_insta) { %>
+            		<a href="<%= frontData.soc_insta %>">Instagram</a>
+            	<% } %>
+				
+            	<% if (menuSettings.youtube_status && frontData.soc_youtube) { %>
+            		<a href="<%= frontData.soc_youtube %>">Youtube</a>
+            	<% } %>
+				
 			</div>
 			
 		</main>

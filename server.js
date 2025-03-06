@@ -14,6 +14,10 @@ dotenv.config();
 
 // Initialize database
 const db = require("./config/database");
+const { syncDatabase } = require("./models");
+
+// Initialize database
+syncDatabase();
 
 // Test database connection
 db.authenticate()
@@ -97,11 +101,13 @@ app.set("views", path.join(__dirname, "views"));
 const indexRoutes = require("./routes/indexRoutes");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // Use routes
 app.use("/", indexRoutes);
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+app.use("/settings", dashboardRoutes);
 
 // Error handling middleware
 const errorHandler = require("./middlewares/errorHandler");

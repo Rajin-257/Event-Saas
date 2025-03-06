@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <%- include("../partials/title-meta.ejs", {title: "FrontPage Settings"}) %>
+    <%- include('../partials/head-css.ejs') %>
+</head>
+
+
+<body>
+    <!-- Begin page -->
+    <div class="wrapper">
+
+        <%- include('../partials/menu.ejs') %>
+
+        <!-- ============================================================== -->
+        <!-- Start Page Content here -->
+        <!-- ============================================================== -->
+        <div class="page-content">
+
+            <div class="page-container">
+
+                <%- include("../partials/page-title.ejs", {subtitle: "Account", title: "Edit Profile"}) %>
+
+                <div class="row">
+                    <div class=" mx-auto">
+                        <div class="card shadow-sm">
+                            <% if(success_msg && success_msg.length > 0){ %>
+                              <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <%= success_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            <% } %>
+                          
+                            <% if(error_msg && error_msg.length > 0){ %>
+                              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <%= error_msg %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            <% } %>
+                          
+                            <% if(error && error.length > 0){ %>
+                              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <%= error %>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            <% } %>
+                            <div class="card-body p-4">
+                                <!-- Adjustments to the form action and display of existing values -->
+                                <form action="/settings/frontpage-setting?_method=PUT" method="POST" enctype="multipart/form-data">
+                                    <div class="mb-5 image-upload-section">
+                                        <h5 class="mb-4 text-center">Site Images</h5>
+                                        <div class="d-flex justify-content-between w-100">
+                                            <!-- Logo Upload -->
+                                            <div class="image-upload-container text-center">
+                                                <div class="image-preview mb-3">
+                                                    <% if (settings && settings.Logo) { %>
+                                                        <img src="<%= settings.Logo %>" alt="Logo" class="preview-image">
+                                                    <% } else { %>
+                                                        <div class="placeholder-container">
+                                                            <i class="mdi mdi-image-outline placeholder-icon"></i>
+                                                            <span class="placeholder-text">Logo</span>
+                                                        </div>
+                                                    <% } %>
+                                                </div>
+                                                <div class="upload-controls">
+                                                    <label for="logo" class="btn btn-sm btn-outline-primary upload-btn">
+                                                        <i class="mdi mdi-upload me-2"></i>Upload Logo
+                                                    </label>
+                                                    <input type="file" id="logo" name="logo" accept="image/*" class="d-none">
+                                                    <p class="file-info mt-2 small text-muted" id="selectedLogoName"></p>
+                                                    <small class="text-muted d-block mt-1">Recommended: 200×200px</small>
+                                                </div>
+                                            </div>
+                                        
+                                            <!-- Favicon Upload -->
+                                            <div class="image-upload-container text-center">
+                                                <div class="image-preview mb-3">
+                                                    <% if (settings && settings.fav) { %>
+                                                        <img src="<%= settings.fav %>" alt="Favicon" class="preview-image">
+                                                    <% } else { %>
+                                                        <div class="placeholder-container">
+                                                            <i class="mdi mdi-star-outline placeholder-icon"></i>
+                                                            <span class="placeholder-text">Favicon</span>
+                                                        </div>
+                                                    <% } %>
+                                                </div>
+                                                <div class="upload-controls">
+                                                    <label for="favicon" class="btn btn-sm btn-outline-primary upload-btn">
+                                                        <i class="mdi mdi-upload me-2"></i>Upload Favicon
+                                                    </label>
+                                                    <input type="file" id="favicon" name="favicon" accept="image/*" class="d-none">
+                                                    <p class="file-info mt-2 small text-muted" id="selectedFaviconName"></p>
+                                                    <small class="text-muted d-block mt-1">Recommended: 64×64px</small>
+                                                </div>
+                                            </div>
+                                        
+                                            <!-- Main Picture Upload -->
+                                            <div class="image-upload-container text-center">
+                                                <div class="image-preview mb-3">
+                                                    <% if (settings && settings.main_photo) { %>
+                                                        <img src="<%= settings.main_photo %>" alt="Main Picture" class="preview-image">
+                                                    <% } else { %>
+                                                        <div class="placeholder-container">
+                                                            <i class="mdi mdi-image placeholder-icon"></i>
+                                                            <span class="placeholder-text">Hero Image</span>
+                                                        </div>
+                                                    <% } %>
+                                                </div>
+                                                <div class="upload-controls">
+                                                    <label for="mainPicture" class="btn btn-sm btn-outline-primary upload-btn">
+                                                        <i class="mdi mdi-upload me-2"></i>Main Image
+                                                    </label>
+                                                    <input type="file" id="mainPicture" name="mainPicture" accept="image/*" class="d-none">
+                                                    <p class="file-info mt-2 small text-muted" id="selectedMainPictureName"></p>
+                                                    <small class="text-muted d-block mt-1">Recommended: 1200×600px</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="mb-3">
+                                            <label for="title" class="form-label">Page Title</label>
+                                            <input 
+                                                type="text" 
+                                                class="form-control" 
+                                                id="title" 
+                                                name="title"
+                                                value="<%= settings && settings.title ? settings.title : '' %>"
+                                                placeholder="Enter site title"
+                                            >
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="webtitle" class="form-label">Web Title</label>
+                                            <input 
+                                                type="text" 
+                                                class="form-control" 
+                                                id="webtitle" 
+                                                name="webtitle"
+                                                value="<%= settings && settings.webtitle ? settings.webtitle : '' %>"
+                                                placeholder="Enter site web-title"
+                                            >
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="email" class="form-label">Email</label>
+                                                <input
+                                                    type="email"
+                                                    class="form-control"
+                                                    id="email"
+                                                    value="<%= user.email %>"
+                                                    disabled
+                                                >
+                                                <div class="form-text text-muted">Email cannot be changed.</div>
+                                            </div>
+
+                                            <div class="col-md-4 mb-3">
+                                                <label for="phone" class="form-label">Phone Number</label>
+                                                <input
+                                                    type="tel"
+                                                    class="form-control"
+                                                    id="phone"
+                                                    name="mobile"
+                                                    value="<%= settings && settings.phone ? settings.phone : '' %>"
+                                                    placeholder="Enter your phone number"
+                                                >
+                                            </div>
+
+                                            <div class="col-md-4 mb-3">
+                                                <label for="location" class="form-label">Office Location</label>
+                                                <input
+                                                    type="text"
+                                                    class="form-control"
+                                                    id="location"
+                                                    name="address"
+                                                    value="<%= settings && settings.office_location ? settings.office_location : '' %>"
+                                                    placeholder="Enter your current location"
+                                                >
+                                            </div>
+                                        </div>                                    
+
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="soc_fb" class="form-label">Social_Facebook</label>
+                                                <input
+                                                    type="text"
+                                                    class="form-control"
+                                                    id="soc_fb"
+                                                    name="soc_fb"
+                                                    value="<%= settings && settings.soc_fb ? settings.soc_fb : 'https://www.facebook.com/' %>"
+                                                    placeholder="Enter your Facebook Link"
+                                                >
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="soc_insta" class="form-label">Social_Insta</label>
+                                                <input
+                                                    type="text"
+                                                    class="form-control"
+                                                    id="soc_insta"
+                                                    name="soc_insta"
+                                                    value="<%= settings && settings.soc_insta ? settings.soc_insta : 'https://www.instagram.com/' %>"
+                                                    placeholder="Enter your Instagram Link"
+                                                >
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="soc_youtube" class="form-label">Social_Youtube</label>
+                                                <input
+                                                    type="text"
+                                                    class="form-control"
+                                                    id="soc_youtube"
+                                                    name="soc_youtube"
+                                                    value="<%= settings && settings.soc_youtube ? settings.soc_youtube : 'https://www.youtube.com/' %>"
+                                                    placeholder="Enter your Social Youtube Link"
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-4">
+                                            <a href="/user/dashboard" class="btn btn-outline-secondary">
+                                                <i class="mdi mdi-arrow-left me-2"></i>Go to Dashboard
+                                            </a>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="mdi mdi-content-save me-2"></i>Save Changes
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- end row -->
+
+            </div> <!-- container -->
+
+            <%- include('../partials/footer.ejs') %>
+
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- End Page content -->
+        <!-- ============================================================== -->
+
+    </div>
+    <!-- END wrapper -->
+
+    <%- include('../partials/customizer.ejs') %>
+
+    <%- include('../partials/footer-scripts.ejs') %>
+
+    <style>
+    .image-upload-section {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e9ecef;
+    }
+    
+    .image-upload-container {
+        flex: 1;
+        max-width: 30%;
+        margin: 0 10px;
+        padding: 15px;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: all 0.3s ease;
+    }
+    
+    .image-upload-container:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .image-preview {
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    
+    .preview-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    
+    .placeholder-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+        border: 1px dashed #ced4da;
+    }
+    
+    .placeholder-icon {
+        font-size: 2rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .placeholder-text {
+        color: #6c757d;
+    }
+    
+    .upload-btn {
+        width: 100%;
+    }
+    
+    .file-info {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        height: 20px;
+    }
+</style>
+
+    <script>
+    // Show selected file names for each upload field
+    document.getElementById('logo').addEventListener('change', function() {
+        const fileName = this.files[0] ? this.files[0].name : '';
+        document.getElementById('selectedLogoName').textContent = fileName;
+        
+        // Preview image
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const container = document.getElementById('logo').closest('.image-upload-container').querySelector('.image-preview');
+                container.innerHTML = `<img src="${e.target.result}" alt="Logo" class="preview-image">`;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    document.getElementById('favicon').addEventListener('change', function() {
+        const fileName = this.files[0] ? this.files[0].name : '';
+        document.getElementById('selectedFaviconName').textContent = fileName;
+        
+        // Preview image
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const container = document.getElementById('favicon').closest('.image-upload-container').querySelector('.image-preview');
+                container.innerHTML = `<img src="${e.target.result}" alt="Favicon" class="preview-image">`;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    document.getElementById('mainPicture').addEventListener('change', function() {
+        const fileName = this.files[0] ? this.files[0].name : '';
+        document.getElementById('selectedMainPictureName').textContent = fileName;
+        
+        // Preview image
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const container = document.getElementById('mainPicture').closest('.image-upload-container').querySelector('.image-preview');
+                container.innerHTML = `<img src="${e.target.result}" alt="Main Picture" class="preview-image">`;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+</script>
+</body>
+
+</html>

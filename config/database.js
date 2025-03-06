@@ -1,5 +1,6 @@
-const { Sequelize } = require('sequelize');
-const dotenv = require('dotenv');
+// database.js - Modified Version
+const { Sequelize } = require("sequelize");
+const dotenv = require("dotenv");
 
 // Load environment variables
 dotenv.config();
@@ -12,36 +13,20 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
-    dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialect: "mysql",
+    logging: process.env.NODE_ENV === "development" ? console.log : false,
     define: {
-      timestamps: true, // Automatically add createdAt and updatedAt timestamps
-      underscored: false // Use camelCase for automatically generated attributes
+      timestamps: true,
+      underscored: false,
     },
     pool: {
-      max: 5, // Maximum number of connection in pool
-      min: 0, // Minimum number of connection in pool
-      acquire: 30000, // Maximum time, in milliseconds, that pool will try to get connection before throwing error
-      idle: 10000 // Maximum time, in milliseconds, that a connection can be idle before being released
-    }
-  }
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+  },
 );
 
-// Function to initialize database and create tables
-const initDatabase = async () => {
-  try {
-    // Import models
-    require('../models/User');
-    
-    // Sync database
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('Database synced successfully');
-  } catch (error) {
-    console.error('Error syncing database:', error);
-  }
-};
-
-// Initialize database on application start
-initDatabase();
-
+// Export sequelize instance only - do NOT import models here
 module.exports = sequelize;
