@@ -51,10 +51,14 @@ exports.getFrontPageSettings = async (req, res) => {
     if (!settings) {
       settings = {};
     }
+    const frontpageData = await FrontpageSettings.findOne({
+      where: { id: 1 },
+    });
 
     res.render("backend/settings/Front-page-setting", {
       title: "Frontpage Settings",
       user: req.user,
+      frontData: frontpageData || {},
       settings: settings,
       // Flash messages are already available via res.locals from middleware
     });
@@ -203,10 +207,14 @@ exports.getMenuSettings = async (req, res) => {
         youtube_status: false,
       };
     }
+    const frontpageData = await FrontpageSettings.findOne({
+      where: { id: 1 },
+    });
 
     res.render("backend/settings/menu-setting", {
       title: "Menu Settings",
       user: req.user,
+      frontData: frontpageData || {},
       menuSettings: menuSettings,
       // Flash messages are already available via res.locals from middleware
     });

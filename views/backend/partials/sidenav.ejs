@@ -2,17 +2,22 @@
 <div class="sidenav-menu">
 
     <!-- Brand Logo -->
+     
+
+    <% if (frontData.Logo && frontData.fav) { %>
+    
     <a href="/user/dashboard" class="logo">
         <span class="logo-light">
-            <span class="logo-lg"><img src="/backend/images/logo-light.png" alt="logo"></span>
-            <span class="logo-sm"><img src="/backend/images/logo-sm-light.png" alt="small logo"></span>
+            <span class="logo-lg"><img src="<%= frontData.Logo || 'Home' %>" alt="logo"></span>
+            <span class="logo-sm"><img src="<%= frontData.fav || 'Home' %>" alt="small logo"></span>
         </span>
 
         <span class="logo-dark">
-            <span class="logo-lg"><img src="/backend/images/logo-dark.png" alt="dark logo"></span>
-            <span class="logo-sm"><img src="/backend/images/logo-sm.png" alt="small logo"></span>
+            <span class="logo-lg"><img src="<%= frontData.Logo || 'Home' %>" alt="logo"></span>
+            <span class="logo-sm"><img src="<%= frontData.fav || 'Home' %>" alt="small logo"></span>
         </span>
     </a>
+    <% } %>
 
     <!-- Sidebar Hover Menu Toggle Button -->
     <button class="button-sm-hover">
@@ -48,42 +53,34 @@
             <li class="side-nav-title">Extra Pages</li>
 
             <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarPagesAuth" aria-expanded="false" aria-controls="sidebarPagesAuth" class="side-nav-link">
+                <a href="/settings/guests" class="side-nav-link">
+                    <span class="menu-icon"><i class="iconoir-calendar"></i></span>
+                    <span class="menu-text"> Add Guest </span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="/settings/events" class="side-nav-link">
+                    <span class="menu-icon"><i class="iconoir-calendar"></i></span>
+                    <span class="menu-text"> Event's </span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" href="#sidebarPagesGallery" aria-expanded="false" aria-controls="sidebarPagesGallery" class="side-nav-link">
                     <span class="menu-icon"><i class="iconoir-lock-square"></i></span>
-                    <span class="menu-text"> Auth Pages </span>
+                    <span class="menu-text"> Gallery </span>
                     <span class="menu-arrow"></span>
                 </a>
-                <div class="collapse" id="sidebarPagesAuth">
+                <div class="collapse" id="sidebarPagesGallery">
                     <ul class="sub-menu">
                         <li class="side-nav-item">
-                            <a href="auth-login.html" class="side-nav-link">
-                                <span class="menu-text">Login</span>
+                            <a href="/settings/gallery" class="side-nav-link">
+                                <span class="menu-text">Gallery Images</span>
                             </a>
                         </li>
                         <li class="side-nav-item">
-                            <a href="auth-register.html" class="side-nav-link">
-                                <span class="menu-text">Register</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="auth-recoverpw.html" class="side-nav-link">
-                                <span class="menu-text">Recover Password</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="auth-lock-screen.html" class="side-nav-link">
-                                <span class="menu-text">Lock Screen</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="auth-confirm-mail.html" class="side-nav-link">
-                                <span class="menu-text">Confirm Mail</span>
-                            </a>
-                        </li>
-
-                        <li class="side-nav-item">
-                            <a href="auth-session-expired.html" class="side-nav-link">
-                                <span class="menu-text">Session Expired</span>
+                            <a href="#." class="side-nav-link">
+                                <span class="menu-text">Sponsor</span>
                             </a>
                         </li>
 

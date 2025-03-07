@@ -4,6 +4,7 @@ const multer = require("multer");
 const User = require("../models/User");
 const config = require("../config/config");
 const { title } = require("process");
+const FrontpageSettings = require("../models/frontpage");
 
 // Set up multer storage
 const storage = multer.diskStorage({
@@ -47,8 +48,12 @@ const upload = multer({
 // @route   GET /user/dashboard
 // @access  Private
 exports.getDashboard = async (req, res) => {
+  const frontpageData = await FrontpageSettings.findOne({
+    where: { id: 1 },
+  });
   res.render("backend/index", {
     title: "Dashboard",
+    frontData: frontpageData || {},
     user: req.user,
   });
 };
@@ -57,16 +62,24 @@ exports.getDashboard = async (req, res) => {
 // @route   GET /user/edit-profile
 // @access  Private
 exports.getProfile = async (req, res) => {
+  const frontpageData = await FrontpageSettings.findOne({
+    where: { id: 1 },
+  });
   res.render("backend/userpages/profile", {
     title: "My Profile",
     user: req.user,
+    frontData: frontpageData || {},
     formData: req.flash("formData")[0] || req.user,
   });
 };
 exports.getEditProfile = async (req, res) => {
+  const frontpageData = await FrontpageSettings.findOne({
+    where: { id: 1 },
+  });
   res.render("backend/userpages/editprofile", {
     title: "Edit Profile",
     user: req.user,
+    frontData: frontpageData || {},
     formData: req.flash("formData")[0] || req.user,
   });
 };
@@ -118,8 +131,12 @@ exports.updateProfile = async (req, res, next) => {
 // @route   GET /user/change-password
 // @access  Private
 exports.getChangePassword = async (req, res) => {
+  const frontpageData = await FrontpageSettings.findOne({
+    where: { id: 1 },
+  });
   res.render("backend/userpages/change-password", {
     title: "Change Password",
+    frontData: frontpageData || {},
     user: req.user,
   });
 };
@@ -154,11 +171,15 @@ exports.getUserDetails = async (req, res) => {
   try {
     // Fetch all users from the database
     const users = await User.findAll();
+    const frontpageData = await FrontpageSettings.findOne({
+      where: { id: 1 },
+    });
 
     res.render("backend/userpages/user-details", {
       title: "User's",
       user: req.user,
-      users: users, // Pass all users to the view
+      users: users,
+      frontData: frontpageData || {},
       formData: req.flash("formData")[0] || req.user,
     });
   } catch (error) {
