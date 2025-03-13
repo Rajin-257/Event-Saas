@@ -1,463 +1,630 @@
-const passport = require("passport");
-const crypto = require("crypto");
-const User = require("../models/User");
-const config = require("../config/config");
-const emailService = require("../utils/email");
+/**
+ * Authentication Controller
+ */
+const passport = require('passport');
+const jwt = require('jsonwebtoken');
+const db = require('../models');
+const security = require('../utils/security');
+const emailService = require('../services/emailService');
+const otpService = require('../services/otpService');
+const whatsappService = require('../services/whatsappService');
+const logger = require('../utils/logger');
 
-// Error handling middleware
-const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+// Models
+const User = db.User;
+const Role = db.Role;
+const Session = db.Session;
 
-// @desc    Render login page
-// @route   GET /auth/login
-// @access  Public
-exports.getLogin = (req, res) => {
-  res.render("backend/auth/login", {
-    title: "Login",
-    formData: req.flash("formData")[0] || {},
-    errorMsg: req.flash("error_msg")[0] || null,
-  });
-};
-
-// @desc    Process login
-// @route   POST /auth/login
-// @access  Public
-exports.postLogin = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body;
-
-  // Find user by email
-  const user = await User.findOne({
-    where: { email: email.toLowerCase() },
-  });
-
-  // Check if user exists
-  if (!user) {
-    req.flash("error_msg", "No account found with that email");
-    return res.redirect("/auth/login");
-  }
-
-  // Check if user is verified
-  if (!user.verify_email) {
-    req.flash("error_msg", "Please verify your email before logging in");
-    return res.redirect("/auth/login");
-  }
-
-  // Authenticate user
-  passport.authenticate("local", (err, user, info) => {
-    if (err) {
-      return next(err);
+/**
+ * Register a new user
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.register = async (req, res) => {
+  try {
+    const { first_name, last_name, email, phone, password } = req.body;
+    
+    // Check if email already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email already in use'
+      });
     }
-
-    if (!user) {
-      req.flash("error_msg", info.message || "Invalid credentials");
-      return res.redirect("/auth/login");
+    
+    // Hash password
+    const hashedPassword = await security.hashPassword(password);
+    
+    // Generate verification token
+    const verificationToken = security.generateRandomToken();
+    
+    // Create user
+    const user = await User.create({
+      first_name,
+      last_name,
+      email,
+      phone,
+      password: hashedPassword,
+      verification_token: verificationToken,
+      is_verified: false,
+      status: 'inactive'
+    });
+    
+    // Assign default 'user' role
+    const userRole = await Role.findOne({ where: { name: 'user' } });
+    if (userRole) {
+      await user.addRole(userRole);
     }
-
-    req.login(user, (loginErr) => {
-      if (loginErr) {
-        return next(loginErr);
+    
+    // Generate OTP for verification
+    const otp = await otpService.generateOTP(user.id, 'verification');
+    
+    // Send verification email
+    await emailService.sendVerificationEmail(email, {
+      code: otp.code,
+      name: `${first_name} ${last_name}`,
+      verificationUrl: `${process.env.APP_URL}/verify-email?token=${verificationToken}`
+    });
+    
+    // Send verification via WhatsApp if phone is provided
+    if (phone) {
+      try {
+        await whatsappService.sendOTP(phone, otp.code, 'verification');
+      } catch (error) {
+        // Just log the error, don't fail the registration
+        logger.error(`Failed to send WhatsApp verification: ${error.message}`);
       }
-
-      req.flash("success_msg", "You are now logged in");
-      res.redirect("/user/dashboard");
-    });
-  })(req, res, next);
-});
-
-// @desc    Process login with JWT
-// @route   POST /auth/login
-// @access  Public
-exports.loginWithJWT = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body;
-
-  // Find user by email
-  const user = await User.findOne({
-    where: { email: email.toLowerCase() },
-  });
-
-  // Check if user exists
-  if (!user) {
-    req.flash("error_msg", "No account found with that email");
-    return res.redirect("/auth/login");
-  }
-
-  // Check if user is verified
-  if (!user.verify_email) {
-    req.flash("error_msg", "Please verify your email before logging in");
-    return res.redirect("/auth/login");
-  }
-
-  passport.authenticate("local", (err, user, info) => {
-    if (err) {
-      return next(err);
     }
+    
+    // Return success response
+    res.status(201).json({
+      status: 'success',
+      message: 'Registration successful. Please verify your email.',
+      data: {
+        user: security.sanitizeUser(user)
+      }
+    });
+  } catch (error) {
+    logger.error(`Registration error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Registration failed'
+    });
+  }
+};
 
+/**
+ * Log in a user
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {function} next - Express next function
+ * @returns {Promise<void>}
+ */
+exports.login = (req, res, next) => {
+  passport.authenticate('local', { session: false }, async (err, user, info) => {
+    try {
+      if (err) {
+        return next(err);
+      }
+      
+      if (!user) {
+        return res.status(401).json({
+          status: 'error',
+          message: info.message || 'Invalid credentials'
+        });
+      }
+      
+      // Check if user is verified
+      if (!user.is_verified) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Account not verified. Please verify your email.',
+          requiresVerification: true,
+          userId: user.id
+        });
+      }
+      
+      // Check if user is active
+      if (user.status !== 'active') {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Account is not active. Please contact support.'
+        });
+      }
+      
+      // Generate JWT token
+      const token = security.generateToken({ id: user.id });
+      
+      // Create session
+      await Session.create({
+        id: security.generateRandomToken(),
+        user_id: user.id,
+        ip_address: req.ip,
+        user_agent: req.headers['user-agent'],
+        last_activity: new Date(),
+        data: JSON.stringify({ browser: req.headers['user-agent'] })
+      });
+      
+      // Update user last login time
+      await user.update({
+        last_login: new Date(),
+        last_activity: new Date()
+      });
+      
+      // Return success response with token
+      req.login(user, { session: true }, (err) => {
+        if (err) {
+          return next(err);
+        }
+        
+        // Successful login
+        res.status(200).json({
+          status: 'success',
+          message: 'Login successful',
+          data: {
+            user: security.sanitizeUser(user),
+            token
+          }
+        });
+      });
+    } catch (error) {
+      logger.error(`Login error: ${error.message}`);
+      return next(error);
+    }
+  })(req, res, next);
+};
+
+/**
+ * Log out a user
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.logout = async (req, res) => {
+  try {
+    // Delete session
+    if (req.sessionID) {
+      await Session.destroy({ where: { id: req.sessionID } });
+    }
+    
+    // Clear session
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({
+          status: 'error',
+          message: 'Error logging out'
+        });
+      }
+      
+      req.session.destroy();
+      res.clearCookie('connect.sid');
+      
+      res.status(200).json({
+        status: 'success',
+        message: 'Logged out successfully'
+      });
+    });
+  } catch (error) {
+    logger.error(`Logout error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error logging out'
+    });
+  }
+};
+
+/**
+ * Verify email
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token, code } = req.body;
+    
+    // Find user by verification token
+    const user = await User.findOne({ where: { verification_token: token } });
+    
     if (!user) {
-      req.flash("error_msg", info.message || "Invalid credentials");
-      return res.redirect("/auth/login");
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid verification token'
+      });
     }
-
-    // User authenticated, generate token
-    const token = user.getSignedJwtToken();
-    const refreshToken = user.generateRefreshToken();
-
-    // Save refresh token to database
-    user.refresh_token = refreshToken;
-    user.last_login_data = new Date();
-    user.save();
-
-    // Set cookie options
-    const cookieOptions = {
-      expires: new Date(
-        Date.now() + config.jwt.cookieExpire * 24 * 60 * 60 * 1000,
-      ),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict", // Added for security
-    };
-
-    // Set cookies
-    res.cookie("jwt", token, cookieOptions);
-    res.cookie("refresh_token", refreshToken, {
-      ...cookieOptions,
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-    });
-
-    req.flash("success_msg", "You are now logged in");
-    res.redirect("/user/dashboard");
-  })(req, res, next);
-});
-
-// @desc    Render register page
-// @route   GET /auth/register
-// @access  Public
-exports.getRegister = (req, res) => {
-  res.render("auth/register", {
-    title: "Register",
-    formData: req.flash("formData")[0] || {},
-    errorMsg: req.flash("error_msg")[0] || null,
-  });
-};
-
-// @desc    Process register
-// @route   POST /auth/register
-// @access  Public
-exports.postRegister = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
-
-  // Check if user already exists
-  const existingUser = await User.findOne({
-    where: { email: email.toLowerCase() },
-  });
-
-  if (existingUser) {
-    req.flash("error_msg", "An account with this email already exists");
-    req.flash("formData", req.body);
-    return res.redirect("/auth/register");
-  }
-
-  // Create user
-  const user = await User.create({
-    name,
-    email: email.toLowerCase(),
-    password,
-  });
-
-  // Generate verification token
-  const verificationToken = crypto.randomBytes(20).toString("hex");
-
-  // Create verification URL with shorter expiration
-  const verificationURL = `${config.app.url}/auth/verify-email/${
-    user.id
-  }/${verificationToken}?expires=${Date.now() + 24 * 60 * 60 * 1000}`;
-
-  try {
-    // Send verification email
-    await emailService.sendVerificationEmail({
-      name: user.name,
-      email: user.email,
-      verificationURL,
-    });
-
-    req.flash(
-      "success_msg",
-      "Registration successful! Please check your email to verify your account.",
-    );
-    res.redirect("/auth/login");
-  } catch (emailError) {
-    // If email sending fails, delete the user
-    await user.destroy();
-
-    req.flash(
-      "error_msg",
-      "Failed to send verification email. Please try registering again.",
-    );
-    res.redirect("/auth/register");
-  }
-});
-
-exports.postuserRegister = asyncHandler(async (req, res) => {
-  const { name, email, password, mobile, role, menupuletedby } = req.body;
-
-  // Check if user already exists
-  const existingUser = await User.findOne({
-    where: { email: email.toLowerCase() },
-  });
-
-  if (existingUser) {
-    req.flash("error_msg", "An account with this email already exists");
-    req.flash("formData", req.body);
-    return res.redirect("/user/user-details");
-  }
-
-  // Create user
-  const user = await User.create({
-    name,
-    email: email.toLowerCase(),
-    password,
-    mobile,
-    role,
-    menupuletedby,
-  });
-
-  // Generate verification token
-  const verificationToken = crypto.randomBytes(20).toString("hex");
-
-  // Create verification URL with shorter expiration
-  const verificationURL = `${config.app.url}/auth/verify-email/${
-    user.id
-  }/${verificationToken}?expires=${Date.now() + 24 * 60 * 60 * 1000}`;
-
-  try {
-    // Send verification email
-    await emailService.sendVerificationEmail({
-      name: user.name,
-      email: user.email,
-      verificationURL,
-    });
-
-    req.flash(
-      "success_msg",
-      "Registration successful! Please check User email to verify your account.",
-    );
-    console.log("Post User");
-    res.redirect("/user/user-details");
-  } catch (emailError) {
-    // If email sending fails, delete the user
-    await user.destroy();
-
-    req.flash(
-      "error_msg",
-      "Failed to send verification email. Please try registering again.",
-    );
-    res.redirect("/user/user-details");
-  }
-});
-
-exports.updateRole = async (req, res, next) => {
-  try {
-    // Get the role and userId from the request body
-    const { role, userId, menupuletedby } = req.body;
-
-    await User.update(
-      { role: role, menupuletedby: menupuletedby },
-      { where: { id: userId } },
-    );
-
-    req.flash("success_msg", "Role updated successfully");
-    res.redirect("/user/user-details");
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.deleteUser = async (req, res, next) => {
-  try {
-    const { userID } = req.body;
-
-    // Use destroy() instead of delete()
-    await User.destroy({ where: { id: userID } });
-
-    req.flash("success_msg", "User deleted successfully");
-    res.redirect("/user/user-details");
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Verify email
-// @route   GET /auth/verify-email/:id/:token
-// @access  Public
-exports.verifyEmail = asyncHandler(async (req, res) => {
-  const { id, token } = req.params;
-  const { expires } = req.query;
-
-  // Check token expiration
-  if (!expires || Date.now() > parseInt(expires)) {
-    req.flash("error_msg", "Verification link has expired");
-    return res.redirect("/auth/login");
-  }
-
-  // Find user by ID
-  const user = await User.findByPk(id);
-
-  if (!user) {
-    req.flash("error_msg", "Invalid verification link");
-    return res.redirect("/auth/login");
-  }
-
-  // Check if already verified
-  if (user.verify_email) {
-    req.flash("success_msg", "Email is already verified. You can log in.");
-    return res.redirect("/auth/login");
-  }
-
-  // Update user
-  user.verify_email = true;
-  await user.save();
-
-  req.flash(
-    "success_msg",
-    "Email verification successful! You can now log in.",
-  );
-  res.redirect("/auth/login");
-});
-
-// @desc    Render forgot password page
-// @route   GET /auth/forgot-password
-// @access  Public
-exports.getForgotPassword = (req, res) => {
-  res.render("backend/auth/recoverpw", {
-    title: "Forgot Password",
-    formData: req.flash("formData")[0] || {},
-    errorMsg: req.flash("error_msg")[0] || null,
-  });
-};
-
-// @desc    Process forgot password
-// @route   POST /auth/forgot-password
-// @access  Public
-exports.postForgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-
-  // Find user by email
-  const user = await User.findOne({
-    where: { email: email.toLowerCase() },
-  });
-
-  if (!user) {
-    req.flash("error_msg", "No account found with that email");
-    return res.redirect("/auth/forgot-password");
-  }
-
-  // Check if user is verified
-  if (!user.verify_email) {
-    req.flash(
-      "error_msg",
-      "Please verify your email before resetting password",
-    );
-    return res.redirect("/auth/forgot-password");
-  }
-
-  try {
-    // Generate and save OTP
-    const otp = await user.generatePasswordResetOTP();
-
-    // Send password reset email with OTP
-    await emailService.sendPasswordResetEmail({
-      name: user.name,
-      email: user.email,
-      otp,
-    });
-
-    req.flash("success_msg", "Password reset OTP has been sent to your email");
-    res.redirect("/auth/reset-password");
-  } catch (error) {
-    req.flash(
-      "error_msg",
-      "Failed to send password reset OTP. Please try again.",
-    );
-    res.redirect("/auth/forgot-password");
-  }
-});
-
-// @desc    Render reset password page
-// @route   GET /auth/reset-password
-// @access  Public
-exports.getResetPassword = (req, res) => {
-  res.render("backend/auth/changepw", {
-    title: "Reset Password",
-    formData: req.flash("formData")[0] || {},
-    errorMsg: req.flash("error_msg")[0] || null,
-  });
-};
-
-// @desc    Process reset password
-// @route   POST /auth/reset-password
-// @access  Public
-exports.postResetPassword = asyncHandler(async (req, res) => {
-  const { email, otp, password } = req.body;
-
-  // Find user by email
-  const user = await User.findOne({
-    where: { email: email.toLowerCase() },
-  });
-
-  if (!/^\d{6}$/.test(otp)) {
-    req.flash("error_msg", "Invalid OTP format. OTP must be a 6-digit number.");
-    return res.redirect("/auth/reset-password");
-  }
-
-  // Check if OTP matches
-  if (user.forgot_pass_otp !== otp) {
-    req.flash("error_msg", "Invalid OTP");
-    return res.redirect("/auth/reset-password");
-  }
-
-  if (!user) {
-    req.flash("error_msg", "No account found with that email");
-    return res.redirect("/auth/reset-password");
-  }
-
-  // Check if OTP exists and not expired
-  if (!user.forgot_pass_otp || !user.forgot_pass_expiry) {
-    req.flash("error_msg", "Invalid or expired OTP");
-    return res.redirect("/auth/reset-password");
-  }
-
-  // Check if OTP expired
-  if (new Date() > new Date(user.forgot_pass_expiry)) {
-    req.flash("error_msg", "OTP has expired. Please request a new one");
-    return res.redirect("/auth/forgot-password");
-  }
-
-  // Update password
-  user.password = password;
-  user.forgot_pass_otp = null;
-  user.forgot_pass_expiry = null;
-  await user.save();
-
-  req.flash(
-    "success_msg",
-    "Password reset successful! You can now log in with your new password.",
-  );
-  res.redirect("/auth/login");
-});
-
-// @desc    Logout user
-// @route   GET /auth/logout
-// @access  Private
-exports.logout = (req, res, next) => {
-  // Clear cookies
-  res.clearCookie("jwt");
-  res.clearCookie("refresh_token");
-
-  req.logout((err) => {
-    if (err) {
-      return next(err);
+    
+    // Validate OTP
+    const isValidOTP = await otpService.validateOTP(code, 'verification', user.id);
+    
+    if (!isValidOTP) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid verification code'
+      });
     }
-    req.flash("success_msg", "You are logged out");
-    res.redirect("/auth/login");
-  });
+    
+    // Update user
+    await user.update({
+      is_verified: true,
+      verification_token: null,
+      status: 'active'
+    });
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Email verified successfully'
+    });
+  } catch (error) {
+    logger.error(`Email verification error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Email verification failed'
+    });
+  }
+};
+
+/**
+ * Resend verification email
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Find user by email
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+    
+    // Check if already verified
+    if (user.is_verified) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email already verified'
+      });
+    }
+    
+    // Generate new verification token
+    const verificationToken = security.generateRandomToken();
+    
+    // Update user
+    await user.update({
+      verification_token: verificationToken
+    });
+    
+    // Generate OTP for verification
+    const otp = await otpService.generateOTP(user.id, 'verification');
+    
+    // Send verification email
+    await emailService.sendVerificationEmail(email, {
+      code: otp.code,
+      name: `${user.first_name} ${user.last_name}`,
+      verificationUrl: `${process.env.APP_URL}/verify-email?token=${verificationToken}`
+    });
+    
+    // Send verification via WhatsApp if phone is provided
+    if (user.phone) {
+      try {
+        await whatsappService.sendOTP(user.phone, otp.code, 'verification');
+      } catch (error) {
+        // Just log the error, don't fail the request
+        logger.error(`Failed to send WhatsApp verification: ${error.message}`);
+      }
+    }
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Verification email sent successfully'
+    });
+  } catch (error) {
+    logger.error(`Resend verification error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to resend verification email'
+    });
+  }
+};
+
+/**
+ * Request password reset
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Find user by email
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+    
+    // Generate reset token
+    const resetToken = security.generateRandomToken();
+    const resetExpires = new Date();
+    resetExpires.setHours(resetExpires.getHours() + 1); // Token expires in 1 hour
+    
+    // Update user
+    await user.update({
+      reset_token: resetToken,
+      reset_token_expires: resetExpires
+    });
+    
+    // Generate OTP for password reset
+    const otp = await otpService.generateOTP(user.id, 'reset_password');
+    
+    // Send reset email
+    await emailService.sendPasswordResetEmail(email, {
+      code: otp.code,
+      name: `${user.first_name} ${user.last_name}`,
+      resetUrl: `${process.env.APP_URL}/reset-password?token=${resetToken}`
+    });
+    
+    // Send OTP via WhatsApp if phone is provided
+    if (user.phone) {
+      try {
+        await whatsappService.sendOTP(user.phone, otp.code, 'reset_password');
+      } catch (error) {
+        // Just log the error, don't fail the request
+        logger.error(`Failed to send WhatsApp reset OTP: ${error.message}`);
+      }
+    }
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Password reset instructions sent to your email'
+    });
+  } catch (error) {
+    logger.error(`Forgot password error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Password reset request failed'
+    });
+  }
+};
+
+/**
+ * Reset password
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, code, password } = req.body;
+    
+    // Find user by reset token
+    const user = await User.findOne({
+      where: {
+        reset_token: token,
+        reset_token_expires: {
+          [db.Sequelize.Op.gt]: new Date() // Token not expired
+        }
+      }
+    });
+    
+    if (!user) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid or expired reset token'
+      });
+    }
+    
+    // Validate OTP
+    const isValidOTP = await otpService.validateOTP(code, 'reset_password', user.id);
+    
+    if (!isValidOTP) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid reset code'
+      });
+    }
+    
+    // Hash new password
+    const hashedPassword = await security.hashPassword(password);
+    
+    // Update user
+    await user.update({
+      password: hashedPassword,
+      reset_token: null,
+      reset_token_expires: null
+    });
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Password reset successful'
+    });
+  } catch (error) {
+    logger.error(`Reset password error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Password reset failed'
+    });
+  }
+};
+
+/**
+ * Change password
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.changePassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    const userId = req.user.id;
+    
+    // Get user
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+    
+    // Verify current password
+    const isMatch = await security.comparePassword(current_password, user.password);
+    
+    if (!isMatch) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Current password is incorrect'
+      });
+    }
+    
+    // Hash new password
+    const hashedPassword = await security.hashPassword(new_password);
+    
+    // Update user
+    await user.update({
+      password: hashedPassword
+    });
+    
+    // Return success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    logger.error(`Change password error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Password change failed'
+    });
+  }
+};
+
+/**
+ * Get user profile
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get user with roles
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] },
+      include: [
+        {
+          model: Role,
+          through: { attributes: [] }
+        }
+      ]
+    });
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+    
+    // Return user profile
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user
+      }
+    });
+  } catch (error) {
+    logger.error(`Get profile error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch profile'
+    });
+  }
+};
+
+/**
+ * Update user profile
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { first_name, last_name, phone } = req.body;
+    
+    // Get user
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+    
+    // Check if phone is already used by another user
+    if (phone && phone !== user.phone) {
+      const existingPhone = await User.findOne({
+        where: {
+          phone,
+          id: { [db.Sequelize.Op.ne]: userId }
+        }
+      });
+      
+      if (existingPhone) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Phone number already in use'
+        });
+      }
+    }
+    
+    // Prepare update data
+    const updateData = {};
+    
+    if (first_name) updateData.first_name = first_name;
+    if (last_name) updateData.last_name = last_name;
+    if (phone) updateData.phone = phone;
+    
+    // Handle profile image upload
+    if (req.file) {
+      updateData.profile_image = req.file.path.replace('public/', '');
+    }
+    
+    // Update user
+    await user.update(updateData);
+    
+    // Return updated user
+    res.status(200).json({
+      status: 'success',
+      message: 'Profile updated successfully',
+      data: {
+        user: security.sanitizeUser(user)
+      }
+    });
+  } catch (error) {
+    logger.error(`Update profile error: ${error.message}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update profile'
+    });
+  }
 };

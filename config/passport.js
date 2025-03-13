@@ -1,97 +1,91 @@
-const LocalStrategy = require("passport-local").Strategy;
-const JwtStrategy = require("passport-jwt").Strategy;
-const { ExtractJwt } = require("passport-jwt");
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-const config = require("./config");
+const LocalStrategy = require('passport-local').Strategy;
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
+const bcrypt = require('bcryptjs');
 
-// Cookie extractor function for JWT
-const cookieExtractor = (req) => {
-  let token = null;
-  if (req && req.cookies) {
-    token = req.cookies["jwt"];
-  }
-  return token;
-};
+// Load User model
+const db = require('../models');
+const User = db.User;
+const Role = db.Role;
 
 module.exports = (passport) => {
-  // Local Strategy (username/password)
+  // Local Strategy for username/password login
   passport.use(
     new LocalStrategy(
-      { usernameField: "email" },
+      {
+        usernameField: 'email',
+        passwordField: 'password',
+      },
       async (email, password, done) => {
         try {
           // Find user by email
-          const user = await User.findOne({
-            where: { email: email.toLowerCase() },
+          const user = await User.findOne({ 
+            where: { email },
+            include: [{
+              model: Role,
+              through: { attributes: [] } // Exclude junction table attributes
+            }]
           });
 
-          // If user doesn't exist
+          // No user found
           if (!user) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: 'Invalid email or password' });
           }
 
-          // If user is not active
-          if (user.status !== "Active") {
-            return done(null, false, {
-              message: "Your account is not active. Please contact support.",
-            });
+          // Check if account is active
+          if (user.status !== 'active') {
+            return done(null, false, { message: 'Account is not active. Please contact support.' });
           }
 
-          // If email is not verified
-          if (!user.verify_email) {
-            return done(null, false, {
-              message: "Please verify your email before logging in.",
-            });
-          }
-
-          // Check password
+          // Match password
           const isMatch = await bcrypt.compare(password, user.password);
           if (!isMatch) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: 'Invalid email or password' });
           }
 
-          // Update last login date
-          await user.update({ last_login_data: new Date() });
+          // Update last login time
+          await user.update({
+            last_login: new Date(),
+            last_activity: new Date()
+          });
 
+          // Return user if successful
           return done(null, user);
-        } catch (error) {
-          return done(error);
+        } catch (err) {
+          return done(err);
         }
-      },
-    ),
+      }
+    )
   );
 
-  // JWT Strategy
+  // JWT Strategy for API authentication
+  const jwtOptions = {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.JWT_SECRET,
+  };
+
   passport.use(
-    new JwtStrategy(
-      {
-        jwtFromRequest: ExtractJwt.fromExtractors([
-          cookieExtractor,
-          ExtractJwt.fromAuthHeaderAsBearerToken(),
-        ]),
-        secretOrKey: config.jwt.secret,
-      },
-      async (jwtPayload, done) => {
-        try {
-          // Find user by ID from JWT
-          const user = await User.findByPk(jwtPayload.id);
+    new JwtStrategy(jwtOptions, async (jwt_payload, done) => {
+      try {
+        // Find user by ID from JWT payload
+        const user = await User.findByPk(jwt_payload.id, {
+          include: [{
+            model: Role,
+            through: { attributes: [] }
+          }]
+        });
 
-          if (!user) {
-            return done(null, false);
-          }
-
-          // If user is not active
-          if (user.status !== "Active") {
-            return done(null, false);
-          }
-
+        if (user) {
+          // Update last activity
+          await user.update({ last_activity: new Date() });
           return done(null, user);
-        } catch (error) {
-          return done(error, false);
         }
-      },
-    ),
+        
+        return done(null, false);
+      } catch (err) {
+        return done(err, false);
+      }
+    })
   );
 
   // Serialize user for session
@@ -102,10 +96,15 @@ module.exports = (passport) => {
   // Deserialize user from session
   passport.deserializeUser(async (id, done) => {
     try {
-      const user = await User.findByPk(id);
+      const user = await User.findByPk(id, {
+        include: [{
+          model: Role,
+          through: { attributes: [] }
+        }]
+      });
       done(null, user);
-    } catch (error) {
-      done(error, null);
+    } catch (err) {
+      done(err, null);
     }
   });
 };

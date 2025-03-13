@@ -1,65 +1,38 @@
-// Error handling middleware
-const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
+const logger = require('../utils/logger');
 
-  // Default error values
-  let statusCode = err.statusCode || 500;
-  let message = err.message || 'Server Error';
-  let errors = err.errors || null;
+// Custom error handler middleware
+module.exports = (err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
 
-  // Sequelize unique constraint error
-  if (err.name === 'SequelizeUniqueConstraintError') {
-    statusCode = 400;
-    message = 'Validation Error';
-    errors = err.errors.map(e => ({
-      field: e.path,
-      message: `${e.path.charAt(0).toUpperCase() + e.path.slice(1)} already exists.`
-    }));
-  }
+  // Log the error
+  logger.error(`${err.statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
+  logger.error(err.stack);
 
-  // Sequelize validation error
-  if (err.name === 'SequelizeValidationError') {
-    statusCode = 400;
-    message = 'Validation Error';
-    errors = err.errors.map(e => ({
-      field: e.path,
-      message: e.message
-    }));
-  }
-
-  // JWT errors
-  if (err.name === 'JsonWebTokenError') {
-    statusCode = 401;
-    message = 'Invalid token. Please log in again.';
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    statusCode = 401;
-    message = 'Your token has expired. Please log in again.';
-  }
-
-  // Handle API vs. Web requests differently
-  const isApiRequest = req.originalUrl.startsWith('/api/');
-
-  if (isApiRequest) {
-    // API Response
-    return res.status(statusCode).json({
-      success: false,
-      error: {
-        message,
-        errors,
-        statusCode
-      }
+  // Operational, trusted error: send message to client
+  if (process.env.NODE_ENV === 'development') {
+    return res.status(err.statusCode).render('error', {
+      title: 'Error',
+      message: err.message,
+      error: err,
+      stack: err.stack,
     });
-  } else {
-    // Web Response - Render error page
-    return res.status(statusCode).render('error', {
-      title: `Error ${statusCode}`,
-      message,
-      errors,
-      statusCode
+  } 
+  
+  // Production mode: don't leak error details
+  if (err.isOperational) {
+    return res.status(err.statusCode).render('error', {
+      title: 'Error',
+      message: err.message,
+      error: {},
     });
   }
+  
+  // Programming or other unknown errors: don't leak error details
+  logger.error('ERROR 💥', err);
+  return res.status(500).render('error', {
+    title: 'Error',
+    message: 'Something went wrong',
+    error: {},
+  });
 };
-
-module.exports = errorHandler;

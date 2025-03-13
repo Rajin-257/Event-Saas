@@ -1,77 +1,98 @@
-const express = require("express");
+/**
+ * Authentication Routes
+ */
+const express = require('express');
 const router = express.Router();
-const authController = require("../controllers/authController");
-const {
-  validate,
-  registerValidation,
-  loginValidation,
-  forgotPasswordValidation,
-  resetPasswordValidation,
-} = require("../middlewares/validation");
-const {
-  redirectIfAuthenticated,
-  isAuthenticated,
-} = require("../middlewares/auth");
+const authController = require('../controllers/authController');
+const { ensureAuthenticated, ensureNotAuthenticated } = require('../middlewares/auth');
+const validators = require('../utils/validators');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
-// Apply isAuthenticated middleware to all routes for setting locals
-router.use(isAuthenticated);
+// Ensure upload directory exists
+const profileUploadDir = 'public/uploads/profiles';
+if (!fs.existsSync(profileUploadDir)){
+  fs.mkdirSync(profileUploadDir, { recursive: true });
+}
 
-// Login routes
-router.get("/login", redirectIfAuthenticated, authController.getLogin);
-router.post(
-  "/login",
-  redirectIfAuthenticated,
-  validate(loginValidation),
-  authController.loginWithJWT,
-);
+// Configure multer for profile image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, profileUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    const ext = file.originalname.split('.').pop();
+    cb(null, `profile-${req.user.id}-${uniqueSuffix}.${ext}`);
+  }
+});
 
-// Register routes
-router.get("/register", redirectIfAuthenticated, authController.getRegister);
-router.post(
-  "/register",
-  validate(registerValidation),
-  authController.postRegister,
-);
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
-// Email verification
-router.get("/verify-email/:id/:token", authController.verifyEmail);
+// Public routes
+router.post('/register', validators.registerRules, validators.validate, authController.register);
+router.post('/login', validators.loginRules, validators.validate, authController.login);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/resend-verification', authController.resendVerification);
+router.post('/forgot-password', validators.resetPasswordRequestRules, validators.validate, authController.forgotPassword);
+router.post('/reset-password', validators.resetPasswordRules, validators.validate, authController.resetPassword);
 
-// Forgot password routes
-router.get(
-  "/forgot-password",
-  redirectIfAuthenticated,
-  authController.getForgotPassword,
-);
-router.post(
-  "/forgot-password",
-  redirectIfAuthenticated,
-  validate(forgotPasswordValidation),
-  authController.postForgotPassword,
-);
+// Protected routes
+router.post('/logout', ensureAuthenticated, authController.logout);
+router.get('/profile', ensureAuthenticated, authController.getProfile);
+router.put('/profile', ensureAuthenticated, upload.single('profile_image'), validators.updateUserRules, validators.validate, authController.updateProfile);
+router.post('/change-password', ensureAuthenticated, validators.changePasswordRules, validators.validate, authController.changePassword);
 
-// Reset password routes
-router.get(
-  "/reset-password",
-  redirectIfAuthenticated,
-  authController.getResetPassword,
-);
-router.post(
-  "/reset-password",
-  redirectIfAuthenticated,
-  validate(resetPasswordValidation),
-  authController.postResetPassword,
-);
+// Web routes
+router.get('/login', ensureNotAuthenticated, (req, res) => {
+  res.render('auth/login', { title: 'Login' });
+});
 
-// Logout route
-router.get("/logout", authController.logout);
+router.get('/register', ensureNotAuthenticated, (req, res) => {
+  res.render('auth/register', { title: 'Register' });
+});
 
-router.post(
-  "/user/register",
-  validate(registerValidation),
-  authController.postuserRegister,
-);
+router.get('/forgot-password', ensureNotAuthenticated, (req, res) => {
+  res.render('auth/forgot-password', { title: 'Forgot Password' });
+});
 
-router.post("/user/edit", authController.updateRole);
-router.post("/user/delete", authController.deleteUser);
+router.get('/reset-password', ensureNotAuthenticated, (req, res) => {
+  const { token } = req.query;
+  if (!token) {
+    req.flash('error_msg', 'Invalid reset token');
+    return res.redirect('/login');
+  }
+  res.render('auth/reset-password', { title: 'Reset Password', token });
+});
+
+router.get('/verify-email', (req, res) => {
+  const { token } = req.query;
+  if (!token) {
+    req.flash('error_msg', 'Invalid verification token');
+    return res.redirect('/login');
+  }
+  res.render('auth/verify-email', { title: 'Verify Email', token });
+});
+
+// Dashboard route
+router.get('/dashboard', ensureAuthenticated, (req, res) => {
+  res.render('dashboard/index', { 
+    title: 'Dashboard',
+    user: req.user,
+  });
+});
 
 module.exports = router;

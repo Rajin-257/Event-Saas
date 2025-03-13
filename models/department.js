@@ -1,23 +1,46 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/database");
+// models/department.js
+const { DataTypes } = require('sequelize');
 
-const Department = sequelize.define(
-  "Department",
-  {
+module.exports = (sequelize) => {
+  const Department = sequelize.define('Department', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
+      allowNull: false
     },
     name: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: DataTypes.STRING(100),
+      allowNull: false
     },
-  },
-  {
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    created_by: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
+  }, {
+    tableName: 'departments',
     timestamps: true,
-    tableName: "departments",
-  },
-);
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  });
 
-module.exports = Department;
+  return Department;
+};

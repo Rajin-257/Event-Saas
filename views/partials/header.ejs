@@ -1,43 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> | Auth App</title>
-  
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <!-- Include navbar -->
-  <%- include('navbar') %>
-  
-  <!-- Main content container -->
-  <div class="container mt-4">
-    <!-- Flash messages -->
-    <% if(success_msg && success_msg.length > 0){ %>
-      <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <%= success_msg %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" href="/">Event Management System</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <% if (typeof user !== 'undefined' && user) { %>
+            <li class="nav-item">
+              <a class="nav-link <%= title === 'Dashboard' ? 'active' : '' %>" href="/dashboard">Dashboard</a>
+            </li>
+          <% } %>
+          <li class="nav-item">
+            <a class="nav-link <%= title === 'Events' ? 'active' : '' %>" href="/events">Events</a>
+          </li>
+          <% if (typeof user !== 'undefined' && user && user.Roles && user.Roles.some(role => role.name === 'admin' || role.name === 'organizer')) { %>
+            <li class="nav-item">
+              <a class="nav-link <%= title === 'Verify Ticket' ? 'active' : '' %>" href="/tickets/verify">Verify Tickets</a>
+            </li>
+          <% } %>
+        </ul>
+        
+        <div class="d-flex">
+          <% if (typeof user !== 'undefined' && user) { %>
+            <div class="dropdown">
+              <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle"></i> <%= user.first_name %>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="/profile"><i class="bi bi-person"></i> My Profile</a></li>
+                <li><a class="dropdown-item" href="/tickets/user"><i class="bi bi-ticket-perforated"></i> My Tickets</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form action="/logout" method="POST">
+                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          <% } else { %>
+            <a href="/login" class="btn btn-outline-light me-2">Sign In</a>
+            <a href="/register" class="btn btn-light">Sign Up</a>
+          <% } %>
+        </div>
       </div>
-    <% } %>
-    
-    <% if(error_msg && error_msg.length > 0){ %>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= error_msg %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    <% } %>
-    
-    <% if(error && error.length > 0){ %>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= error %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    <% } %>
+    </div>
+  </nav>

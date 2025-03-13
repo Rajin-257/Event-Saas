@@ -1,153 +1,92 @@
-// models/User.js
-const { DataTypes } = require("sequelize");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const sequelize = require("../config/database");
-const config = require("../config/config");
+// models/user.js
+const { DataTypes } = require('sequelize');
 
-const User = sequelize.define(
-  "User",
-  {
+module.exports = (sequelize) => {
+  const User = sequelize.define('User', {
     id: {
       type: DataTypes.INTEGER,
-      autoIncrement: true,
       primaryKey: true,
+      autoIncrement: true,
+      allowNull: false
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: "Name cannot be empty",
-        },
-      },
+    first_name: {
+      type: DataTypes.STRING(50),
+      allowNull: false
+    },
+    last_name: {
+      type: DataTypes.STRING(50),
+      allowNull: false
     },
     email: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(100),
       allowNull: false,
       unique: true,
       validate: {
-        isEmail: {
-          msg: "Please provide a valid email",
-        },
-      },
-      set(value) {
-        this.setDataValue("email", value.toLowerCase());
-      },
+        isEmail: true
+      }
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      unique: true,
+      allowNull: true
     },
     password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        len: {
-          args: [6, 100],
-          msg: "Password must be at least 6 characters long",
-        },
-      },
+      type: DataTypes.STRING(100),
+      allowNull: false
     },
-    avatar: {
-      type: DataTypes.STRING,
-      defaultValue: "",
+    profile_image: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     },
-    mobile: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-    },
-    refresh_token: {
-      type: DataTypes.STRING,
-      defaultValue: "",
-    },
-    verify_email: {
+    is_verified: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
+      defaultValue: false
+    },
+    verification_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    reset_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    reset_token_expires: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    last_login: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    last_activity: {
+      type: DataTypes.DATE,
+      allowNull: true
     },
     status: {
-      type: DataTypes.ENUM("Active", "inactive", "suspended"),
-      defaultValue: "Active",
+      type: DataTypes.ENUM('active', 'inactive', 'suspended'),
+      defaultValue: 'inactive'
     },
-    last_login_data: {
+    created_at: {
       type: DataTypes.DATE,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     },
-    address: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    forgot_pass_otp: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    forgot_pass_expiry: {
+    updated_at: {
       type: DataTypes.DATE,
-      allowNull: true,
-    },
-    role: {
-      type: DataTypes.STRING,
-      defaultValue: "user",
-    },
-    menupuletedby: {
-      type: DataTypes.INTEGER,
-      defaultValue: 1,
-    },
-  },
-  {
-    timestamps: true, // Adds createdAt and updatedAt
-    hooks: {
-      beforeCreate: async (user) => {
-        if (user.password) {
-          const salt = await bcrypt.genSalt(10);
-          user.password = await bcrypt.hash(user.password, salt);
-        }
-      },
-      beforeUpdate: async (user) => {
-        if (user.changed("password")) {
-          const salt = await bcrypt.genSalt(10);
-          user.password = await bcrypt.hash(user.password, salt);
-        }
-      },
-    },
-  },
-);
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
+  }, {
+    tableName: 'users',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    indexes: [
+      { fields: ['email'] },
+      { fields: ['phone'] },
+      { fields: ['status'] }
+    ]
+  });
 
-// Instance methods
-
-// Sign JWT and return
-User.prototype.getSignedJwtToken = function () {
-  return jwt.sign(
-    { id: this.id, email: this.email, role: this.role },
-    config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn },
-  );
+  return User;
 };
-
-// Match user entered password to hashed password in database
-User.prototype.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
-
-// Generate and hash password token
-User.prototype.generatePasswordResetOTP = async function () {
-  // Generate OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // Set expiry time - 30 minutes
-  const expiry = new Date();
-  expiry.setMinutes(expiry.getMinutes() + config.otp.expiryTimeMinutes);
-
-  // Update user with new OTP and expiry
-  this.forgot_pass_otp = otp;
-  this.forgot_pass_expiry = expiry;
-  await this.save();
-
-  return otp;
-};
-
-// Generate refresh token
-User.prototype.generateRefreshToken = function () {
-  const refreshToken = crypto.randomBytes(40).toString("hex");
-  this.refresh_token = refreshToken;
-  return refreshToken;
-};
-
-module.exports = User;

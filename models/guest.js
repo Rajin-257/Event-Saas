@@ -1,97 +1,78 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/database");
-const Department = require("./department");
+// models/guest.js
+const { DataTypes } = require('sequelize');
 
-const Guest = sequelize.define(
-  "Guest",
-  {
+module.exports = (sequelize) => {
+  const Guest = sequelize.define('Guest', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
+      allowNull: false
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
+    first_name: {
+      type: DataTypes.STRING(50),
+      allowNull: false
     },
-    picture: {
-      type: DataTypes.STRING,
+    last_name: {
+      type: DataTypes.STRING(50),
+      allowNull: false
+    },
+    email: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    },
+    bio: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    profile_image: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    department_id: {
+      type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: 'departments',
+        key: 'id'
+      }
     },
-    department: {
+    status: {
+      type: DataTypes.ENUM('active', 'inactive'),
+      defaultValue: 'active'
+    },
+    created_by: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: Department,
-        key: "id",
-      },
+        model: 'users',
+        key: 'id'
+      }
     },
-    designation: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    organization: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    soc_youtube: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    soc_fb: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    soc_insta: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    soc_tiktok: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    soc_likee: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    soc_youtube_status: {
-      type: DataTypes.BOOLEAN,
+    created_at: {
+      type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: true,
+      defaultValue: DataTypes.NOW
     },
-    soc_fb_status: {
-      type: DataTypes.BOOLEAN,
+    updated_at: {
+      type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: true,
-    },
-    soc_insta_status: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
-    soc_tiktok_status: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
-    soc_likee_status: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
-  },
-  {
+      defaultValue: DataTypes.NOW
+    }
+  }, {
+    tableName: 'guests',
     timestamps: true,
-    tableName: "guests",
-  },
-);
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    indexes: [
+      { fields: ['email'] },
+      { fields: ['phone'] }
+    ]
+  });
 
-// Create association with Department model
-Guest.belongsTo(Department, { foreignKey: "department" });
-Department.hasMany(Guest, { foreignKey: "department" });
-
-module.exports = Guest;
+  return Guest;
+};

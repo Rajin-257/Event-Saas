@@ -1,33 +1,131 @@
 /**
- * Helper utility functions for the application
+ * Helper utilities
  */
+const moment = require('moment');
 
-// Format date to a readable string
-exports.formatDate = (date) => {
-  if (!date) return 'N/A';
+/**
+ * Format date
+ * @param {Date|string} date - Date to format
+ * @param {string} [format='YYYY-MM-DD'] - Format string
+ * @returns {string} - Formatted date
+ */
+exports.formatDate = (date, format = 'YYYY-MM-DD') => {
+  return moment(date).format(format);
+};
+
+/**
+ * Format time
+ * @param {Date|string} time - Time to format
+ * @param {string} [format='HH:mm'] - Format string
+ * @returns {string} - Formatted time
+ */
+exports.formatTime = (time, format = 'HH:mm') => {
+  return moment(time, 'HH:mm:ss').format(format);
+};
+
+/**
+ * Format datetime
+ * @param {Date|string} datetime - Datetime to format
+ * @param {string} [format='YYYY-MM-DD HH:mm'] - Format string
+ * @returns {string} - Formatted datetime
+ */
+exports.formatDateTime = (datetime, format = 'YYYY-MM-DD HH:mm') => {
+  return moment(datetime).format(format);
+};
+
+/**
+ * Calculate time difference in days
+ * @param {Date|string} date1 - First date
+ * @param {Date|string} date2 - Second date
+ * @returns {number} - Difference in days
+ */
+exports.daysDifference = (date1, date2) => {
+  return moment(date1).diff(moment(date2), 'days');
+};
+
+/**
+ * Check if a date is in the past
+ * @param {Date|string} date - Date to check
+ * @returns {boolean} - Is date in past
+ */
+exports.isDatePast = (date) => {
+  return moment(date).isBefore(moment(), 'day');
+};
+
+/**
+ * Check if a date is in the future
+ * @param {Date|string} date - Date to check
+ * @returns {boolean} - Is date in future
+ */
+exports.isDateFuture = (date) => {
+  return moment(date).isAfter(moment(), 'day');
+};
+
+/**
+ * Check if a date is today
+ * @param {Date|string} date - Date to check
+ * @returns {boolean} - Is date today
+ */
+exports.isDateToday = (date) => {
+  return moment(date).isSame(moment(), 'day');
+};
+
+/**
+ * Calculate pagination metadata
+ * @param {number} total - Total number of items
+ * @param {number} limit - Items per page
+ * @param {number} page - Current page
+ * @returns {object} - Pagination metadata
+ */
+exports.getPaginationMetadata = (total, limit, page) => {
+  const totalPages = Math.ceil(total / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
   
-  const options = { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return {
+    currentPage: page,
+    totalPages,
+    totalItems: total,
+    limit,
+    hasNextPage,
+    hasPrevPage,
+    nextPage: hasNextPage ? page + 1 : null,
+    prevPage: hasPrevPage ? page - 1 : null
   };
-  
-  return new Date(date).toLocaleDateString(undefined, options);
 };
 
-// Truncate text to a specified length
-exports.truncateText = (text, length = 100) => {
-  if (!text) return '';
-  
-  if (text.length <= length) return text;
-  
-  return text.substring(0, length) + '...';
+/**
+ * Generate pagination options for Sequelize queries
+ * @param {number} page - Page number
+ * @param {number} limit - Items per page
+ * @returns {object} - Sequelize pagination options
+ */
+exports.getPaginationOptions = (page, limit) => {
+  return {
+    offset: (page - 1) * limit,
+    limit
+  };
 };
 
-// Generate random string or token
-exports.generateRandomString = (length = 20) => {
+/**
+ * Format currency
+ * @param {number} amount - Amount to format
+ * @param {string} [currency='BDT'] - Currency code
+ * @returns {string} - Formatted currency
+ */
+exports.formatCurrency = (amount, currency = 'BDT') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency
+  }).format(amount);
+};
+
+/**
+ * Generate random string
+ * @param {number} [length=10] - Length of string
+ * @returns {string} - Random string
+ */
+exports.generateRandomString = (length = 10) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   
@@ -38,77 +136,54 @@ exports.generateRandomString = (length = 20) => {
   return result;
 };
 
-// Format file size
-exports.formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
+/**
+ * Parse query parameters for pagination
+ * @param {object} query - Query parameters
+ * @param {number} [defaultLimit=10] - Default limit
+ * @param {number} [maxLimit=100] - Maximum limit
+ * @returns {object} - Parsed pagination parameters
+ */
+exports.parsePaginationQuery = (query, defaultLimit = 10, maxLimit = 100) => {
+  let page = parseInt(query.page) || 1;
+  let limit = parseInt(query.limit) || defaultLimit;
   
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  // Ensure page is at least 1
+  page = Math.max(1, page);
   
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  // Ensure limit is within bounds
+  limit = Math.min(Math.max(1, limit), maxLimit);
+  
+  return { page, limit };
 };
 
-// Convert string to slug
-exports.slugify = (text) => {
+/**
+ * Generate slug from string
+ * @param {string} text - Text to generate slug from
+ * @returns {string} - Generated slug
+ */
+exports.generateSlug = (text) => {
   return text
     .toString()
     .toLowerCase()
-    .replace(/\s+/g, '-')        // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')    // Remove all non-word chars
-    .replace(/\-\-+/g, '-')      // Replace multiple - with single -
-    .replace(/^-+/, '')          // Trim - from start of text
-    .replace(/-+$/, '');         // Trim - from end of text
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
 };
 
-// Calculate time difference
-exports.timeSince = (date) => {
-  if (!date) return 'N/A';
+/**
+ * Extract error messages from Sequelize validation errors
+ * @param {Error} err - Sequelize error
+ * @returns {object} - Extracted error messages
+ */
+exports.extractSequelizeErrors = (err) => {
+  const errors = {};
   
-  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  
-  let interval = seconds / 31536000; // years
-  
-  if (interval > 1) {
-    return Math.floor(interval) + ' years ago';
+  if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+    err.errors.forEach((error) => {
+      errors[error.path] = error.message;
+    });
   }
   
-  interval = seconds / 2592000; // months
-  if (interval > 1) {
-    return Math.floor(interval) + ' months ago';
-  }
-  
-  interval = seconds / 86400; // days
-  if (interval > 1) {
-    return Math.floor(interval) + ' days ago';
-  }
-  
-  interval = seconds / 3600; // hours
-  if (interval > 1) {
-    return Math.floor(interval) + ' hours ago';
-  }
-  
-  interval = seconds / 60; // minutes
-  if (interval > 1) {
-    return Math.floor(interval) + ' minutes ago';
-  }
-  
-  return Math.floor(seconds) + ' seconds ago';
-};
-
-// Generate pagination data
-exports.getPaginationData = (page, limit, total) => {
-  const currentPage = parseInt(page, 10) || 1;
-  const pageSize = parseInt(limit, 10) || 10;
-  const totalItems = parseInt(total, 10);
-  const totalPages = Math.ceil(totalItems / pageSize);
-  
-  return {
-    currentPage,
-    pageSize,
-    totalItems,
-    totalPages,
-    hasNext: currentPage < totalPages,
-    hasPrev: currentPage > 1
-  };
+  return errors;
 };

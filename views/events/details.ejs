@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Event Management System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .banner-container {
+      height: 350px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .banner-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .banner-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%);
+      color: white;
+      padding: 30px;
+    }
+    
+    .status-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 1rem;
+    }
+    
+    .ticket-card {
+      transition: transform 0.3s;
+      border: 2px solid #e9ecef;
+    }
+    
+    .ticket-card:hover {
+      transform: translateY(-5px);
+      border-color: #007bff;
+    }
+    
+    .guest-avatar {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <%- include('../partials/header') %>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <%- include('../partials/sidebar') %>
+      
+      <div class="col-lg-10 col-md-12 p-0">
+        <!-- Alert messages -->
+        <% if(success_msg != '') { %>
+          <div class="alert alert-success alert-dismissible fade show mx-4 mt-4 mb-0" role="alert">
+            <%= success_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+        
+        <% if(error_msg != '') { %>
+          <div class="alert alert-danger alert-dismissible fade show mx-4 mt-4 mb-0" role="alert">
+            <%= error_msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+        
+        <!-- Event Banner -->
+        <div class="banner-container mb-4">
+          <% if (event.banner_image) { %>
+            <img src="/<%= event.banner_image %>" alt="<%= event.title %>" class="banner-image">
+          <% } else { %>
+            <div class="banner-image bg-primary bg-opacity-10 d-flex align-items-center justify-content-center">
+              <i class="bi bi-calendar-event text-primary" style="font-size: 5rem;"></i>
+            </div>
+          <% } %>
+          
+          <div class="banner-overlay">
+            <h1><%= event.title %></h1>
+            <p class="mb-0">
+              <i class="bi bi-calendar-event me-2"></i> <%= formattedStartDate %> at <%= formattedStartTime %>
+              <% if (formattedStartDate !== formattedEndDate) { %>
+                - <%= formattedEndDate %>
+              <% } %>
+            </p>
+            <p>
+              <i class="bi bi-geo-alt me-2"></i> <%= event.Venue.name %>, <%= event.Venue.city %>
+            </p>
+          </div>
+          
+          <span class="status-badge badge 
+            <% if (event.status === 'published') { %> bg-success 
+            <% } else if (event.status === 'draft') { %> bg-warning text-dark 
+            <% } else if (event.status === 'cancelled') { %> bg-danger 
+            <% } else { %> bg-secondary <% } %>">
+            <%= event.status.charAt(0).toUpperCase() + event.status.slice(1) %>
+          </span>
+        </div>
+        
+        <div class="px-4">
+          <!-- Management Buttons (for organizers/admins) -->
+          <% if (canManageEvent) { %>
+            <div class="mb-4">
+              <div class="btn-group">
+                <a href="/events/<%= event.id %>/edit" class="btn btn-outline-primary">
+                  <i class="bi bi-pencil me-2"></i> Edit Event
+                </a>
+                <a href="/events/<%= event.id %>/tickets" class="btn btn-outline-primary">
+                  <i class="bi bi-ticket-perforated me-2"></i> Manage Tickets
+                </a>
+                <a href="/events/<%= event.id %>/guests" class="btn btn-outline-primary">
+                  <i class="bi bi-people me-2"></i> Manage Guests
+                </a>
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                  More
+                </button>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#shareModal">
+                      <i class="bi bi-share me-2"></i> Share Event
+                    </a>
+                  </li>
+                  <% if (event.status === 'draft') { %>
+                    <li>
+                      <a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#publishModal">
+                        <i class="bi bi-cloud-arrow-up me-2"></i> Publish Event
+                      </a>
+                    </li>
+                  <% } else if (event.status === 'published') { %>
+                    <li>
+                      <a class="dropdown-item text-warning" href="#" data-bs-toggle="modal" data-bs-target="#unpublishModal">
+                        <i class="bi bi-cloud-arrow-down me-2"></i> Unpublish Event
+                      </a>
+                    </li>
+                  <% } %>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                      <i class="bi bi-trash me-2"></i> Delete Event
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          <% } %>
+          
+          <div class="row">
+            <div class="col-lg-8">
+              <!-- Event Details -->
+              <div class="card mb-4">
+                <div class="card-header">
+                  <h5 class="mb-0">Event Details</h5>
+                </div>
+                <div class="card-body">
+                  <% if (event.description) { %>
+                    <div class="mb-4">
+                      <p><%= event.description %></p>
+                    </div>
+                  <% } %>
+                  
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6><i class="bi bi-calendar-event me-2"></i> Date & Time</h6>
+                      <p class="mb-3">
+                        <%= formattedStartDate %> at <%= formattedStartTime %>
+                        <% if (formattedStartDate !== formattedEndDate) { %>
+                          <br>to <%= formattedEndDate %> at <%= formattedEndTime %>
+                        <% } else { %>
+                          - <%= formattedEndTime %>
+                        <% } %>
+                      </p>
+                      
+                      <h6><i class="bi bi-geo-alt me-2"></i> Venue</h6>
+                      <p>
+                        <%= event.Venue.name %><br>
+                        <%= event.Venue.address %><br>
+                        <%= event.Venue.city %>
+                      </p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <h6><i class="bi bi-info-circle me-2"></i> Event Status</h6>
+                      <p class="mb-3">
+                        <span class="badge 
+                          <% if (event.status === 'published') { %> bg-success 
+                          <% } else if (event.status === 'draft') { %> bg-warning text-dark 
+                          <% } else if (event.status === 'cancelled') { %> bg-danger 
+                          <% } else { %> bg-secondary <% } %>">
+                          <%= event.status.charAt(0).toUpperCase() + event.status.slice(1) %>
+                        </span>
+                      </p>
+                      
+                      <h6><i class="bi bi-person me-2"></i> Organizer</h6>
+                      <p>
+                        <%= event.Creator ? `${event.Creator.first_name} ${event.Creator.last_name}` : 'Unknown' %>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Guests Section -->
+              <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">Featured Guests</h5>
+                  <% if (canManageEvent) { %>
+                    <a href="/events/<%= event.id %>/guests" class="btn btn-sm btn-primary">
+                      <i class="bi bi-people me-2"></i> Manage Guests
+                    </a>
+                  <% } %>
+                </div>
+                <div class="card-body">
+                  <% if (event.Guests && event.Guests.length > 0) { %>
+                    <div class="row">
+                      <% event.Guests.forEach(guest => { %>
+                        <div class="col-md-6 mb-3">
+                          <div class="d-flex align-items-center">
+                            <% if (guest.profile_image) { %>
+                              <img src="/<%= guest.profile_image %>" alt="<%= guest.first_name %>" class="rounded-circle guest-avatar me-3">
+                            <% } else { %>
+                              <div class="bg-light rounded-circle d-flex align-items-center justify-content-center guest-avatar me-3">
+                                <i class="bi bi-person text-secondary"></i>
+                              </div>
+                            <% } %>
+                            <div>
+                              <h6 class="mb-1"><%= guest.first_name %> <%= guest.last_name %></h6>
+                              <% if (guest.EventGuest && guest.EventGuest.role) { %>
+                                <span class="badge bg-info"><%= guest.EventGuest.role %></span>
+                              <% } %>
+                            </div>
+                          </div>
+                        </div>
+                      <% }); %>
+                    </div>
+                  <% } else { %>
+                    <p class="text-muted mb-0">No guests have been added to this event yet.</p>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-lg-4">
+              <!-- Tickets Section -->
+              <div class="card mb-4">
+                <div class="card-header">
+                  <h5 class="mb-0">Available Tickets</h5>
+                </div>
+                <% if (event.TicketTypes && event.TicketTypes.length > 0) { %>
+                  <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                      <% event.TicketTypes.forEach(ticketType => { %>
+                        <div class="list-group-item">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><%= ticketType.name %></h6>
+                            <span class="badge bg-primary"><%= ticketType.price > 0 ? `$${ticketType.price}` : 'Free' %></span>
+                          </div>
+                          <% if (ticketType.description) { %>
+                            <p class="small text-muted mb-2"><%= ticketType.description %></p>
+                          <% } %>
+                          <% const available = ticketType.max_tickets - ticketType.tickets_sold; %>
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small text-muted">
+                              <%= available %> of <%= ticketType.max_tickets %> available
+                            </span>
+                            <% if (available > 0 && event.status === 'published') { %>
+                              <a href="/tickets/purchase/<%= event.id %>?ticket_type=<%= ticketType.id %>" class="btn btn-sm btn-primary">Buy Ticket</a>
+                            <% } else { %>
+                              <button class="btn btn-sm btn-secondary" disabled>Sold Out</button>
+                            <% } %>
+                          </div>
+                          <div class="progress" style="height: 5px;">
+                            <div class="progress-bar" role="progressbar" style="width: <%= (ticketType.tickets_sold / ticketType.max_tickets) * 100 %>%" aria-valuenow="<%= (ticketType.tickets_sold / ticketType.max_tickets) * 100 %>" aria-valuemin="0" aria-valuemax="100"></div>
+                          </div>
+                        </div>
+                      <% }); %>
+                    </div>
+                  </div>
+                <% } else { %>
+                  <div class="card-body">
+                    <p class="text-muted mb-0">No tickets available for this event yet.</p>
+                  </div>
+                <% } %>
+              </div>
+              
+              <!-- Venue Details -->
+              <div class="card mb-4">
+                <div class="card-header">
+                  <h5 class="mb-0">Venue Information</h5>
+                </div>
+                <div class="card-body">
+                  <h6><%= event.Venue.name %></h6>
+                  <p class="text-muted">
+                    <%= event.Venue.address %><br>
+                    <%= event.Venue.city %>
+                  </p>
+                  
+                  <% if (event.Venue.capacity) { %>
+                    <p class="small text-muted">
+                      <i class="bi bi-people me-2"></i> Capacity: <%= event.Venue.capacity %> people
+                    </p>
+                  <% } %>
+                  
+                  <% if (event.Venue.contact_person || event.Venue.contact_email || event.Venue.contact_phone) { %>
+                    <h6 class="mt-3">Contact Information</h6>
+                    <% if (event.Venue.contact_person) { %>
+                      <p class="small text-muted mb-1">
+                        <i class="bi bi-person me-2"></i> <%= event.Venue.contact_person %>
+                      </p>
+                    <% } %>
+                    
+                    <% if (event.Venue.contact_email) { %>
+                      <p class="small text-muted mb-1">
+                        <i class="bi bi-envelope me-2"></i> <%= event.Venue.contact_email %>
+                      </p>
+                    <% } %>
+                    
+                    <% if (event.Venue.contact_phone) { %>
+                      <p class="small text-muted mb-1">
+                        <i class="bi bi-telephone me-2"></i> <%= event.Venue.contact_phone %>
+                      </p>
+                    <% } %>
+                  <% } %>
+                </div>
+              </div>
+              
+              <!-- Share Widget -->
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">Share Event</h5>
+                </div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-center gap-3">
+                    <a href="https://facebook.com/sharer/sharer.php?u=<%= encodeURIComponent(`${process.env.APP_URL}/events/${event.id}`) %>" target="_blank" class="btn btn-outline-primary">
+                      <i class="bi bi-facebook"></i>
+                    </a>
+                    <a href="https://twitter.com/intent/tweet?text=<%= encodeURIComponent(`Check out ${event.title}`) %>&url=<%= encodeURIComponent(`${process.env.APP_URL}/events/${event.id}`) %>" target="_blank" class="btn btn-outline-info">
+                      <i class="bi bi-twitter"></i>
+                    </a>
+                    <a href="mailto:?subject=<%= encodeURIComponent(`Check out ${event.title}`) %>&body=<%= encodeURIComponent(`I thought you might be interested in this event: ${event.title}. Learn more at: ${process.env.APP_URL}/events/${event.id}`) %>" class="btn btn-outline-secondary">
+                      <i class="bi bi-envelope"></i>
+                    </a>
+                    <button type="button" class="btn btn-outline-success" id="copyLinkBtn" data-url="<%= `${process.env.APP_URL}/events/${event.id}` %>">
+                      <i class="bi bi-link-45deg"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <%- include('../partials/footer') %>
+  
+  <!-- Modals for admin/organizer actions -->
+  <% if (canManageEvent) { %>
+    <!-- Delete Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteModalLabel">Delete Event</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete this event? This action cannot be undone.</p>
+            <p class="text-danger"><strong>Warning:</strong> All tickets, guests, and related data will be permanently deleted.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <form action="/events/<%= event.id %>/delete" method="POST">
+              <button type="submit" class="btn btn-danger">Delete Event</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Publish Modal -->
+    <% if (event.status === 'draft') { %>
+      <div class="modal fade" id="publishModal" tabindex="-1" aria-labelledby="publishModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="publishModalLabel">Publish Event</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to publish this event? Once published, it will be visible to all users.</p>
+              <div class="alert alert-info">
+                <i class="bi bi-info-circle-fill me-2"></i> Make sure all event details and ticket information are correct before publishing.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form action="/events/<%= event.id %>/publish" method="POST">
+                <button type="submit" class="btn btn-success">Publish Event</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } %>
+    
+    <!-- Unpublish Modal -->
+    <% if (event.status === 'published') { %>
+      <div class="modal fade" id="unpublishModal" tabindex="-1" aria-labelledby="unpublishModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="unpublishModalLabel">Unpublish Event</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to unpublish this event? Once unpublished, it will no longer be visible to regular users.</p>
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> Unpublishing will not affect existing tickets. Ticket holders will still be able to view their tickets.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form action="/events/<%= event.id %>/unpublish" method="POST">
+                <button type="submit" class="btn btn-warning">Unpublish Event</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } %>
+    
+    <!-- Share Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="shareModalLabel">Share Event</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="eventLink" class="form-label">Event Link</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="eventLink" value="<%= `${process.env.APP_URL || 'http://localhost:3000'}/events/${event.id}` %>" readonly>
+                <button class="btn btn-outline-secondary" type="button" id="modalCopyBtn">
+                  <i class="bi bi-clipboard"></i> Copy
+                </button>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+              <a href="https://facebook.com/sharer/sharer.php?u=<%= encodeURIComponent(`${process.env.APP_URL || 'http://localhost:3000'}/events/${event.id}`) %>" target="_blank" class="btn btn-outline-primary">
+                <i class="bi bi-facebook me-2"></i> Facebook
+              </a>
+              <a href="https://twitter.com/intent/tweet?text=<%= encodeURIComponent(`Check out ${event.title}`) %>&url=<%= encodeURIComponent(`${process.env.APP_URL || 'http://localhost:3000'}/events/${event.id}`) %>" target="_blank" class="btn btn-outline-info">
+                <i class="bi bi-twitter me-2"></i> Twitter
+              </a>
+              <a href="mailto:?subject=<%= encodeURIComponent(`Check out ${event.title}`) %>&body=<%= encodeURIComponent(`I thought you might be interested in this event: ${event.title}. Learn more at: ${process.env.APP_URL || 'http://localhost:3000'}/events/${event.id}`) %>" class="btn btn-outline-secondary">
+                <i class="bi bi-envelope me-2"></i> Email
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Copy link button functionality
+      document.getElementById('copyLinkBtn')?.addEventListener('click', function() {
+        const url = this.getAttribute('data-url');
+        navigator.clipboard.writeText(url).then(() => {
+          // Change button text temporarily
+          const originalIcon = this.innerHTML;
+          this.innerHTML = '<i class="bi bi-check"></i>';
+          setTimeout(() => {
+            this.innerHTML = originalIcon;
+          }, 2000);
+        });
+      });
+      
+      // Modal copy button functionality
+      document.getElementById('modalCopyBtn')?.addEventListener('click', function() {
+        const eventLink = document.getElementById('eventLink');
+        eventLink.select();
+        navigator.clipboard.writeText(eventLink.value).then(() => {
+          const originalText = this.innerHTML;
+          this.innerHTML = '<i class="bi bi-check"></i> Copied';
+          setTimeout(() => {
+            this.innerHTML = originalText;
+          }, 2000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

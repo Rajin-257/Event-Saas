@@ -1,108 +1,50 @@
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
-const config = require("../config/config");
-const User = require("../models/User");
+/**
+ * Authentication middleware
+ */
 
-// Protect routes - require authentication
-exports.protect = (req, res, next) => {
-  passport.authenticate("jwt", { session: false }, (err, user, info) => {
-    // If error or no user
-    if (err || !user) {
-      req.flash("error_msg", "Please log in to access this page");
-      return res.redirect("/auth/login");
+// Ensure user is authenticated
+exports.ensureAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) {
+      return next();
     }
-
-    // Set the user in the request
-    req.user = user;
-    next();
-  })(req, res, next);
-};
-
-// Grant access to specific roles
-exports.authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      req.flash("error_msg", "Please log in to access this page");
-      return res.redirect("/auth/login");
+    req.flash('error_msg', 'Please log in to access this resource');
+    res.redirect('/login');
+  };
+  
+  // Ensure user is not authenticated (for login/register pages)
+  exports.ensureNotAuthenticated = (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return next();
     }
-
-    if (!roles.includes(req.user.role)) {
-      req.flash("error_msg", "You are not authorized to access this page");
-      return res.redirect("/");
-    }
-
+    res.redirect('/dashboard');
+  };
+  
+  // Ensure the user has the specified role
+  exports.ensureRole = (roles) => {
+    return (req, res, next) => {
+      // Convert to array if single role provided
+      if (typeof roles === 'string') {
+        roles = [roles];
+      }
+  
+      if (req.isAuthenticated() && req.user.Roles) {
+        // Check if the user has at least one of the required roles
+        const userRoles = req.user.Roles.map(role => role.name);
+        const hasRole = roles.some(role => userRoles.includes(role));
+        
+        if (hasRole) {
+          return next();
+        }
+      }
+      
+      req.flash('error_msg', 'You do not have permission to access this resource');
+      res.redirect('/dashboard');
+    };
+  };
+  
+  // API authentication middleware using JWT
+  exports.apiAuth = (req, res, next) => {
+    // Implementation will be added with JWT
+    // This is a placeholder for now
     next();
   };
-};
-
-// Check if user is authenticated for conditional UI rendering
-exports.isAuthenticated = (req, res, next) => {
-  // Check for JWT in cookies
-  const token = req.cookies.jwt;
-
-  if (!token) {
-    res.locals.isAuthenticated = false;
-    return next();
-  }
-
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, config.jwt.secret);
-
-    // Find user by ID
-    User.findByPk(decoded.id)
-      .then((user) => {
-        if (!user || user.status !== "Active") {
-          res.locals.isAuthenticated = false;
-        } else {
-          res.locals.isAuthenticated = true;
-          res.locals.currentUser = {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            avatar: user.avatar,
-          };
-        }
-        next();
-      })
-      .catch(() => {
-        res.locals.isAuthenticated = false;
-        next();
-      });
-  } catch (error) {
-    res.locals.isAuthenticated = false;
-    next();
-  }
-};
-
-// Redirect if authenticated (for login/register pages)
-exports.redirectIfAuthenticated = (req, res, next) => {
-  // Check for JWT in cookies
-  const token = req.cookies.jwt;
-
-  if (!token) {
-    return next();
-  }
-
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, config.jwt.secret);
-
-    // Find user by ID
-    User.findByPk(decoded.id)
-      .then((user) => {
-        if (!user || user.status !== "Active") {
-          next();
-        } else {
-          req.flash("success_msg", "You are already logged in");
-          res.redirect("/user/dashboard");
-        }
-      })
-      .catch(() => {
-        next();
-      });
-  } catch (error) {
-    next();
-  }
-};
