@@ -1,59 +1,11 @@
-<!-- Footer -->
-<footer class="bg-dark text-light py-4 mt-5">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <h5>Event Management System</h5>
-          <p class="text-muted">A complete solution for managing events, tickets, guests, and venues.</p>
+<!-- Footer Start -->
+<footer class="footer">
+    <div class="page-container">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <script>document.write(new Date().getFullYear())</script> © Simple - By <span class="fw-semibold text-decoration-underline text-primary">Coderthemes</span>
+            </div>
         </div>
-        
-        <div class="col-md-2 mb-3">
-          <h6>Quick Links</h6>
-          <ul class="list-unstyled">
-            <li><a href="/" class="text-decoration-none text-muted">Home</a></li>
-            <li><a href="/events" class="text-decoration-none text-muted">Events</a></li>
-            <% if (typeof user !== 'undefined' && user) { %>
-              <li><a href="/dashboard" class="text-decoration-none text-muted">Dashboard</a></li>
-              <li><a href="/tickets/user" class="text-decoration-none text-muted">My Tickets</a></li>
-            <% } else { %>
-              <li><a href="/login" class="text-decoration-none text-muted">Login</a></li>
-              <li><a href="/register" class="text-decoration-none text-muted">Register</a></li>
-            <% } %>
-          </ul>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-          <h6>Contact Us</h6>
-          <ul class="list-unstyled text-muted">
-            <li><i class="bi bi-envelope me-2"></i> support@eventmanagement.com</li>
-            <li><i class="bi bi-telephone me-2"></i> +1 (123) 456-7890</li>
-            <li><i class="bi bi-geo-alt me-2"></i> 123 Event Street, City</li>
-          </ul>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-          <h6>Follow Us</h6>
-          <div class="d-flex gap-3 mt-2">
-            <a href="#" class="text-decoration-none text-muted fs-5"><i class="bi bi-facebook"></i></a>
-            <a href="#" class="text-decoration-none text-muted fs-5"><i class="bi bi-twitter"></i></a>
-            <a href="#" class="text-decoration-none text-muted fs-5"><i class="bi bi-instagram"></i></a>
-            <a href="#" class="text-decoration-none text-muted fs-5"><i class="bi bi-linkedin"></i></a>
-          </div>
-        </div>
-      </div>
-      
-      <hr class="my-4 bg-secondary">
-      
-      <div class="row align-items-center">
-        <div class="col-md-6 text-center text-md-start">
-          <p class="mb-0 text-muted">&copy; <%= new Date().getFullYear() %> Event Management System. All rights reserved.</p>
-        </div>
-        <div class="col-md-6 text-center text-md-end">
-          <ul class="list-inline mb-0">
-            <li class="list-inline-item"><a href="#" class="text-muted text-decoration-none">Privacy Policy</a></li>
-            <li class="list-inline-item"><a href="#" class="text-muted text-decoration-none">Terms of Service</a></li>
-          </ul>
-        </div>
-      </div>
     </div>
-  </footer>
+</footer>
+<!-- end Footer -->

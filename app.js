@@ -86,10 +86,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'development' && process.env.HTTPS === 'true',
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    },
+      maxAge: 24 * 60 * 60 * 1000,
+    }
   })
 );
 
@@ -105,6 +105,7 @@ app.use((req, res, next) => {
   res.locals.success_msg = req.flash('success_msg');
   res.locals.error_msg = req.flash('error_msg');
   res.locals.error = req.flash('error');
+  res.locals.messages = req.flash();
   res.locals.user = req.user || null;
   next();
 });

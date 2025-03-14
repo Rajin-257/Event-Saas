@@ -43,12 +43,12 @@ const upload = multer({
 });
 
 // Public routes
-router.post('/register', validators.registerRules, validators.validate, authController.register);
+router.post('/register', authController.register);
 router.post('/login', validators.loginRules, validators.validate, authController.login);
 router.post('/verify-email', authController.verifyEmail);
 router.post('/resend-verification', authController.resendVerification);
 router.post('/forgot-password', validators.resetPasswordRequestRules, validators.validate, authController.forgotPassword);
-router.post('/reset-password', validators.resetPasswordRules, validators.validate, authController.resetPassword);
+router.post('/reset-password', authController.resetPassword);
 
 // Protected routes
 router.post('/logout', ensureAuthenticated, authController.logout);
@@ -85,6 +85,9 @@ router.get('/verify-email', (req, res) => {
     return res.redirect('/login');
   }
   res.render('auth/verify-email', { title: 'Verify Email', token });
+});
+router.get('/resend-verification', (req, res) => {
+  res.render('auth/resend-verification', { title: 'Resend Verification Email' });
 });
 
 // Dashboard route

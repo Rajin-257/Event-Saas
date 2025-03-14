@@ -35,60 +35,7 @@ exports.validate = (req, res, next) => {
 /**
  * Registration validation rules
  */
-exports.registerRules = [
-  body('first_name')
-    .trim()
-    .notEmpty().withMessage('First name is required')
-    .isLength({ min: 2, max: 50 }).withMessage('First name must be between 2 and 50 characters'),
-    
-  body('last_name')
-    .trim()
-    .notEmpty().withMessage('Last name is required')
-    .isLength({ min: 2, max: 50 }).withMessage('Last name must be between 2 and 50 characters'),
-    
-  body('email')
-    .trim()
-    .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Please provide a valid email')
-    .custom(async (value) => {
-      const user = await User.findOne({ where: { email: value } });
-      if (user) {
-        return Promise.reject('Email already in use');
-      }
-      return true;
-    }),
-    
-  body('phone')
-    .trim()
-    .optional()
-    .isMobilePhone().withMessage('Please provide a valid phone number')
-    .custom(async (value) => {
-      if (value) {
-        const user = await User.findOne({ where: { phone: value } });
-        if (user) {
-          return Promise.reject('Phone number already in use');
-        }
-      }
-      return true;
-    }),
-    
-  body('password')
-    .trim()
-    .notEmpty().withMessage('Password is required')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
-    
-  body('password_confirm')
-    .trim()
-    .notEmpty().withMessage('Password confirmation is required')
-    .custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error('Passwords do not match');
-      }
-      return true;
-    })
-];
+
 
 /**
  * Login validation rules
@@ -121,31 +68,6 @@ exports.resetPasswordRequestRules = [
     })
 ];
 
-/**
- * Password reset validation rules
- */
-exports.resetPasswordRules = [
-  body('token')
-    .trim()
-    .notEmpty().withMessage('Token is required'),
-    
-  body('password')
-    .trim()
-    .notEmpty().withMessage('Password is required')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
-    
-  body('password_confirm')
-    .trim()
-    .notEmpty().withMessage('Password confirmation is required')
-    .custom((value, { req }) => {
-      if (value !== req.body.password) {
-        throw new Error('Passwords do not match');
-      }
-      return true;
-    })
-];
 
 /**
  * Create event validation rules

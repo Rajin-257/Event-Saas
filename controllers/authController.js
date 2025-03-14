@@ -9,6 +9,7 @@ const emailService = require('../services/emailService');
 const otpService = require('../services/otpService');
 const whatsappService = require('../services/whatsappService');
 const logger = require('../utils/logger');
+const userRole = require('../models/userRole');
 
 // Models
 const User = db.User;
@@ -28,9 +29,17 @@ exports.register = async (req, res) => {
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Email already in use'
+      req.flash('error', 'Email already in use');
+      return res.render('auth/register', {
+        messages: req.flash()
+      });
+    }
+
+    const existingPhone = await User.findOne({ where: { phone } });
+    if (existingPhone) {
+      req.flash('error', 'Phone number already in use');
+      return res.render('auth/register', {
+        messages: req.flash()
       });
     }
     
@@ -58,6 +67,7 @@ exports.register = async (req, res) => {
       await user.addRole(userRole);
     }
     
+    
     // Generate OTP for verification
     const otp = await otpService.generateOTP(user.id, 'verification');
     
@@ -79,18 +89,17 @@ exports.register = async (req, res) => {
     }
     
     // Return success response
-    res.status(201).json({
-      status: 'success',
-      message: 'Registration successful. Please verify your email.',
-      data: {
-        user: security.sanitizeUser(user)
-      }
+    req.flash('success', 'Registration successful. Please verify your email.');
+    return res.render('auth/login', {
+      messages: req.flash(),
+      user: security.sanitizeUser(user)
     });
+
   } catch (error) {
     logger.error(`Registration error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Registration failed'
+    req.flash('error', 'Error 500.Registration failed');
+    return res.render('auth/register', {
+      messages: req.flash()
     });
   }
 };
@@ -110,17 +119,17 @@ exports.login = (req, res, next) => {
       }
       
       if (!user) {
-        return res.status(401).json({
-          status: 'error',
-          message: info.message || 'Invalid credentials'
+        req.flash('error', 'Invalid credentials');
+        return res.render('auth/login', {
+          messages: req.flash()
         });
       }
       
       // Check if user is verified
       if (!user.is_verified) {
-        return res.status(401).json({
-          status: 'error',
-          message: 'Account not verified. Please verify your email.',
+        req.flash('error', 'Account not verified. Please verify your email.');
+        return res.render('auth/login', {
+          messages: req.flash(),
           requiresVerification: true,
           userId: user.id
         });
@@ -128,9 +137,9 @@ exports.login = (req, res, next) => {
       
       // Check if user is active
       if (user.status !== 'active') {
-        return res.status(401).json({
-          status: 'error',
-          message: 'Account is not active. Please contact support.'
+        req.flash('error', 'Account is not active. Please contact support.');
+        return res.render('auth/login', {
+          messages: req.flash()
         });
       }
       
@@ -153,22 +162,40 @@ exports.login = (req, res, next) => {
         last_activity: new Date()
       });
       
-      // Return success response with token
-      req.login(user, { session: true }, (err) => {
+      // Login user
+      req.login(user, { session: true }, async (err) => {
         if (err) {
           return next(err);
         }
         
-        // Successful login
-        res.status(200).json({
-          status: 'success',
-          message: 'Login successful',
-          data: {
-            user: security.sanitizeUser(user),
-            token
-          }
+        // Get user roles to determine the dashboard
+        const userWithRoles = await User.findByPk(user.id, {
+          include: [{
+            model: Role,
+            through: { attributes: [] }
+          }]
         });
+        
+        // Determine which dashboard to show based on role
+        let dashboardRoute = '/dashboard';
+        
+        // Check if user has roles and redirect accordingly
+        if (userWithRoles && userWithRoles.Roles && userWithRoles.Roles.length > 0) {
+          const roles = userWithRoles.Roles.map(role => role.name);
+          
+          if (roles.includes('admin')) {
+            dashboardRoute = '/admin/dashboard';
+          } else if (roles.includes('manager')) {
+            dashboardRoute = '/manager/dashboard';
+          } else if (roles.includes('organizer')) {
+            dashboardRoute = '/organizer/dashboard';
+          }
+          // Add more role-based redirects as needed
+        }
+        
+        return res.redirect(dashboardRoute);
       });
+      
     } catch (error) {
       logger.error(`Login error: ${error.message}`);
       return next(error);
@@ -184,33 +211,44 @@ exports.login = (req, res, next) => {
  */
 exports.logout = async (req, res) => {
   try {
-    // Delete session
+    // Delete session from database if using a custom Session model
     if (req.sessionID) {
-      await Session.destroy({ where: { id: req.sessionID } });
+      try {
+        await Session.destroy({ where: { id: req.sessionID } });
+      } catch (err) {
+        logger.warn(`Session deletion warning: ${err.message}`);
+        // Continue with logout even if this fails
+      }
     }
     
-    // Clear session
-    req.logout((err) => {
+    // Modern way to handle logout in Passport.js
+    req.logout(function(err) {
       if (err) {
-        return res.status(500).json({
-          status: 'error',
-          message: 'Error logging out'
-        });
+        logger.error(`Logout error: ${err.message}`);
+        req.flash('error', 'Error logging out');
+        return res.redirect('/dashboard');
       }
       
-      req.session.destroy();
-      res.clearCookie('connect.sid');
-      
-      res.status(200).json({
-        status: 'success',
-        message: 'Logged out successfully'
+      // Destroy the session after successful logout
+      req.session.destroy(function(err) {
+        if (err) {
+          logger.error(`Session destruction error: ${err.message}`);
+        }
+        
+        // Clear the cookie regardless
+        res.clearCookie('connect.sid');
+        
+        // Redirect with flash message
+        return res.render('auth/login', {
+          messages: { success: ['Logged out successfully'] }
+        });
       });
     });
   } catch (error) {
     logger.error(`Logout error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Error logging out'
+    req.flash('error', 'Error logging out');
+    return res.render('auth/login', {
+      messages: req.flash()
     });
   }
 };
@@ -229,9 +267,9 @@ exports.verifyEmail = async (req, res) => {
     const user = await User.findOne({ where: { verification_token: token } });
     
     if (!user) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid verification token'
+      req.flash('error', 'Invalid verification token');
+      return res.render('auth/verify-email', {
+        messages: req.flash()
       });
     }
     
@@ -239,9 +277,9 @@ exports.verifyEmail = async (req, res) => {
     const isValidOTP = await otpService.validateOTP(code, 'verification', user.id);
     
     if (!isValidOTP) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid verification code'
+      req.flash('error', 'Invalid verification code');
+      return res.render('auth/verify-email', {
+        messages: req.flash()
       });
     }
     
@@ -253,15 +291,15 @@ exports.verifyEmail = async (req, res) => {
     });
     
     // Return success response
-    res.status(200).json({
-      status: 'success',
-      message: 'Email verified successfully'
+    req.flash('success', 'Email verified successfully');
+    return res.render('auth/login', {
+      messages: req.flash()
     });
   } catch (error) {
     logger.error(`Email verification error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Email verification failed'
+    req.flash('error', 'Email verification failed');
+    return res.render('auth/verify-email', {
+      messages: req.flash()
     });
   }
 };
@@ -280,17 +318,17 @@ exports.resendVerification = async (req, res) => {
     const user = await User.findOne({ where: { email } });
     
     if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
+      req.flash('error', 'User not found');
+      return res.render('auth/register', {
+        messages: req.flash()
       });
     }
     
     // Check if already verified
     if (user.is_verified) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Email already verified'
+      req.flash('error', 'Email already verified');
+      return res.render('auth/login', {
+        messages: req.flash()
       });
     }
     
@@ -323,9 +361,9 @@ exports.resendVerification = async (req, res) => {
     }
     
     // Return success response
-    res.status(200).json({
-      status: 'success',
-      message: 'Verification email sent successfully'
+    req.flash('success', 'Verification email sent successfully');
+    return res.render('auth/login', {
+      messages: req.flash()
     });
   } catch (error) {
     logger.error(`Resend verification error: ${error.message}`);
@@ -388,15 +426,15 @@ exports.forgotPassword = async (req, res) => {
     }
     
     // Return success response
-    res.status(200).json({
-      status: 'success',
-      message: 'Password reset instructions sent to your email'
+    req.flash('success', 'Password reset instructions sent to your email');
+    return res.render('auth/login', {
+      messages: req.flash()
     });
   } catch (error) {
     logger.error(`Forgot password error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Password reset request failed'
+    req.flash('error', 'Password reset request failed');
+    return res.render('auth/forgot-password', {
+      messages: req.flash()
     });
   }
 };
@@ -422,9 +460,9 @@ exports.resetPassword = async (req, res) => {
     });
     
     if (!user) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid or expired reset token'
+      req.flash('error', 'Invalid or expired reset token');
+      return res.render('auth/forgot-password', {
+        messages: req.flash(),
       });
     }
     
@@ -432,9 +470,9 @@ exports.resetPassword = async (req, res) => {
     const isValidOTP = await otpService.validateOTP(code, 'reset_password', user.id);
     
     if (!isValidOTP) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Invalid reset code'
+      req.flash('error', 'Invalid reset code');
+      return res.render('auth/forgot-password', {
+        messages: req.flash(),
       });
     }
     
@@ -449,15 +487,15 @@ exports.resetPassword = async (req, res) => {
     });
     
     // Return success response
-    res.status(200).json({
-      status: 'success',
-      message: 'Password reset successful'
+    req.flash('success', 'Password reset successful');
+    return res.render('auth/login', {
+      messages: req.flash()
     });
   } catch (error) {
     logger.error(`Reset password error: ${error.message}`);
     res.status(500).json({
       status: 'error',
-      message: 'Password reset failed'
+      message: 'Server 500! Password reset failed'
     });
   }
 };

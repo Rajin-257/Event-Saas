@@ -50,7 +50,10 @@ module.exports = {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2>Password Reset</h2>
             <p>Please use the following code to reset your password:</p>
-            <a href="{{verificationUrl}}" 
+            <div style="background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold;">
+              {{code}}
+            </div>
+            <a href="{{resetUrl}}" 
                style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 24px; 
                       font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; 
                       text-align: center; margin: 20px auto; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
