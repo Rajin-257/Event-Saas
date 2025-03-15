@@ -42,6 +42,7 @@
                     </div>
 
                     <div class="col-lg-8">
+                        <%- include('../partials/alert.ejs') %>
                         <div class="card">
                             <div class="card-body">
                                 <ul class="nav nav-tabs nav-bordered" role="tablist">
@@ -130,7 +131,12 @@
                                     </div>
                                     <div class="tab-pane" id="profile-settings">
                                         <h5 class="mt-3 mb-3">Account Settings</h5>
-                                        <form action="/profile" method="put">
+                                        <!-- Fix for the Update Profile Form in profile.ejs -->
+                                         
+                                        <form action="/profile" method="POST" enctype="multipart/form-data">
+                                            <!-- Hidden field for method override if needed -->
+                                            <input type="hidden" name="_method" value="PUT">
+
                                             <div class="row mb-3">
                                                 <label for="inputFirstName" class="col-sm-3 col-form-label">First Name</label>
                                                 <div class="col-sm-9">
@@ -152,17 +158,18 @@
                                             <div class="row mb-3">
                                                 <label for="inputPhone" class="col-sm-3 col-form-label">Phone</label>
                                                 <div class="col-sm-9">
-                                                    <input type="text" class="form-control" id="inputPhone" name="phone" value="<%= user.phone %>">
+                                                    <input type="text" class="form-control" id="inputPhone" name="phone" value="<%= user.phone || '' %>">
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
                                                 <label for="inputProfileImage" class="col-sm-3 col-form-label">Profile Image</label>
                                                 <div class="col-sm-9">
                                                     <input type="file" class="form-control" name="profile_image" id="inputProfileImage">
+                                                    <div class="form-text">Supported formats: JPG, PNG, GIF</div>
                                                 </div>
                                             </div>
                                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                                <button type="button" class="btn btn-light me-md-2">Cancel</button>
+                                                <button type="button" class="btn btn-light me-md-2" data-bs-dismiss="modal">Cancel</button>
                                                 <button type="submit" class="btn btn-primary">Save Changes</button>
                                             </div>
                                         </form>
@@ -170,23 +177,23 @@
                                         <hr>
 
                                         <h5 class="mt-4 mb-3">Security Settings</h5>
-                                        <form>
+                                        <form action="/change-password" method="post">
                                             <div class="row mb-3">
                                                 <label for="inputCurrentPassword" class="col-sm-3 col-form-label">Current Password</label>
                                                 <div class="col-sm-9">
-                                                    <input type="password" class="form-control" id="inputCurrentPassword" placeholder="Enter current password">
+                                                    <input type="password" class="form-control" id="inputCurrentPassword" name="current_password" placeholder="Enter current password">
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
                                                 <label for="inputNewPassword" class="col-sm-3 col-form-label">New Password</label>
                                                 <div class="col-sm-9">
-                                                    <input type="password" class="form-control" id="inputNewPassword" placeholder="Enter new password">
+                                                    <input type="password" class="form-control" id="inputNewPassword" name="new_password" placeholder="Enter new password">
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
                                                 <label for="inputConfirmPassword" class="col-sm-3 col-form-label">Confirm Password</label>
                                                 <div class="col-sm-9">
-                                                    <input type="password" class="form-control" id="inputConfirmPassword" placeholder="Confirm new password">
+                                                    <input type="password" class="form-control" id="inputConfirmPassword" name="confirm_password" placeholder="Confirm new password">
                                                 </div>
                                             </div>
                                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -223,55 +230,7 @@
     <script src="/admin/libs/morris.js/morris.min.js"></script>
     <script src="/admin/libs/raphael/raphael.min.js"></script>
 
-    <!-- Profile page js -->
-    <script>
-        // Sample data for login statistics chart
-        var loginData = [
-            { y: 'Jan', a: 8 },
-            { y: 'Feb', a: 12 },
-            { y: 'Mar', a: 10 },
-            { y: 'Apr', a: 15 },
-            { y: 'May', a: 8 },
-            { y: 'Jun', a: 12 },
-            { y: 'Jul', a: 14 },
-            { y: 'Aug', a: 10 },
-            { y: 'Sep', a: 18 },
-            { y: 'Oct', a: 11 },
-            { y: 'Nov', a: 14 },
-            { y: 'Dec', a: 10 }
-        ];
-
-        Morris.Bar({
-            element: 'login-statistics-chart',
-            data: loginData,
-            xkey: 'y',
-            ykeys: ['a'],
-            labels: ['Logins'],
-            barColors: ['#3bafda'],
-            hideHover: 'auto',
-            gridLineColor: '#eef0f2',
-            resize: true
-        });
-
-        // Initialize form validation and tab functionality
-        $(function() {
-            // Enable Bootstrap tooltip
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            });
-            
-            // Handle tab persistence
-            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-                localStorage.setItem('activeProfileTab', $(e.target).attr('href'));
-            });
-            
-            var activeTab = localStorage.getItem('activeProfileTab');
-            if(activeTab){
-                $('.nav-tabs a[href="' + activeTab + '"]').tab('show');
-            }
-        });
-    </script>
+    
 
 </body>
 

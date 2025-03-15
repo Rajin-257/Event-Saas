@@ -53,8 +53,8 @@ router.post('/reset-password', authController.resetPassword);
 // Protected routes
 router.post('/logout', ensureAuthenticated, authController.logout);
 router.get('/profile', ensureAuthenticated, authController.getProfile);
-router.put('/profile', ensureAuthenticated, upload.single('profile_image'), validators.updateUserRules, validators.validate, authController.updateProfile);
-router.post('/change-password', ensureAuthenticated, validators.changePasswordRules, validators.validate, authController.changePassword);
+router.post('/profile', ensureAuthenticated, upload.single('profile_image'), validators.validate, authController.updateProfile);
+router.post('/change-password', ensureAuthenticated, authController.changePassword);
 
 // Web routes
 router.get('/login', ensureNotAuthenticated, (req, res) => {

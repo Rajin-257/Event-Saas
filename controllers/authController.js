@@ -508,16 +508,24 @@ exports.resetPassword = async (req, res) => {
  */
 exports.changePassword = async (req, res) => {
   try {
-    const { current_password, new_password } = req.body;
+    const { current_password, new_password, confirm_password } = req.body;
     const userId = req.user.id;
+    
+    // Validate that new password and confirmation match
+    if (new_password !== confirm_password) {
+      req.flash('error', 'New password and confirmation do not match');
+      return res.render('users/profile', {
+        messages: req.flash()
+      });
+    }
     
     // Get user
     const user = await User.findByPk(userId);
     
     if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
+      req.flash('error', 'User Not Found');
+      return res.render('auth/login', {
+        messages: req.flash()
       });
     }
     
@@ -525,9 +533,9 @@ exports.changePassword = async (req, res) => {
     const isMatch = await security.comparePassword(current_password, user.password);
     
     if (!isMatch) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Current password is incorrect'
+      req.flash('error', 'Current password is incorrect');
+      return res.render('users/profile', {
+        messages: req.flash()
       });
     }
     
@@ -540,9 +548,9 @@ exports.changePassword = async (req, res) => {
     });
     
     // Return success response
-    res.status(200).json({
-      status: 'success',
-      message: 'Password changed successfully'
+    req.flash('success', 'Password changed successfully');
+    return res.render('users/profile', {
+      messages: req.flash()
     });
   } catch (error) {
     logger.error(`Change password error: ${error.message}`);
@@ -552,7 +560,6 @@ exports.changePassword = async (req, res) => {
     });
   }
 };
-
 /**
  * Get user profile
  * @param {Request} req - Express request object
@@ -561,6 +568,8 @@ exports.changePassword = async (req, res) => {
  */
 exports.getProfile = async (req, res) => {
   try {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    console.log(baseUrl + req.originalUrl); 
     const userId = req.user.id;
     
     // Get user with roles
@@ -575,10 +584,8 @@ exports.getProfile = async (req, res) => {
     });
     
     if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
-      });
+      req.flash('error', 'User not found');
+      return res.redirect('/login');
     }
     
     res.render('users/profile', {
@@ -587,10 +594,8 @@ exports.getProfile = async (req, res) => {
 
   } catch (error) {
     logger.error(`Get profile error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch profile'
-    });
+    req.flash('error', '500! Something went wrong');
+    return res.redirect('/login');
   }
 };
 
@@ -609,10 +614,8 @@ exports.updateProfile = async (req, res) => {
     const user = await User.findByPk(userId);
     
     if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
-      });
+      req.flash('error', 'User not found');
+      return res.redirect('/login');
     }
     
     // Check if phone is already used by another user
@@ -625,10 +628,9 @@ exports.updateProfile = async (req, res) => {
       });
       
       if (existingPhone) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Phone number already in use'
-        });
+        
+        req.flash('error', 'Phone number already in use');
+        return res.redirect('/profile');
       }
     }
     
@@ -641,22 +643,23 @@ exports.updateProfile = async (req, res) => {
     
     // Handle profile image upload
     if (req.file) {
-      updateData.profile_image = req.file.path.replace('public/', '');
+      const filePath = req.file.path.replace(/^public[\/\\]/, '').replace(/\\/g, '/');
+      updateData.profile_image = filePath;
     }
     
     // Update user
     await user.update(updateData);
     
     // Return updated user
-    res.status(200).json({
-      status: 'success',
-      message: 'Profile updated successfully',
-      data: {
-        user: security.sanitizeUser(user)
-      }
+    req.flash('success', 'Profile Update successful.');
+    return res.render('users/profile', {
+      messages: req.flash()
     });
+
+
   } catch (error) {
     logger.error(`Update profile error: ${error.message}`);
+
     res.status(500).json({
       status: 'error',
       message: 'Failed to update profile'

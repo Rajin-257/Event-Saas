@@ -7,6 +7,10 @@ const security = require('../utils/security');
 const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
 
+const emailService = require('../services/emailService');
+const otpService = require('../services/otpService');
+
+
 // Models
 const User = db.User;
 const Role = db.Role;
@@ -24,9 +28,6 @@ const PaymentMethod = db.PaymentMethod;
  */
 exports.getAllUsers = async (req, res) => {
   try {
-    // Parse pagination parameters
-    const { page, limit } = helpers.parsePaginationQuery(req.query);
-    
     // Build query
     const query = {
       include: [
@@ -36,42 +37,27 @@ exports.getAllUsers = async (req, res) => {
         }
       ],
       attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] },
-      order: [['created_at', 'DESC']],
-      ...helpers.getPaginationOptions(page, limit)
+      order: [['created_at', 'DESC']]
     };
     
-    // Apply filters
-    if (req.query.search) {
-      query.where = {
-        [db.Sequelize.Op.or]: [
-          { first_name: { [db.Sequelize.Op.like]: `%${req.query.search}%` } },
-          { last_name: { [db.Sequelize.Op.like]: `%${req.query.search}%` } },
-          { email: { [db.Sequelize.Op.like]: `%${req.query.search}%` } }
-        ]
-      };
-    }
-    
+    // Apply status filter if provided
     if (req.query.status) {
       query.where = {
-        ...query.where,
         status: req.query.status
       };
     }
     
     // Execute query
-    const { count, rows: users } = await User.findAndCountAll(query);
-    
-    // Generate pagination metadata
-    const pagination = helpers.getPaginationMetadata(count, limit, page);
+    const users = await User.findAll(query);
     
     // Return users
-    res.status(200).json({
-      status: 'success',
+    return res.render('users/allusers', {
+      messages: req.flash(),
       data: {
-        users,
-        pagination
+        users
       }
     });
+
   } catch (error) {
     logger.error(`Error getting users: ${error.message}`);
     res.status(500).json({
@@ -133,15 +119,26 @@ exports.getUserById = async (req, res) => {
  */
 exports.createUser = async (req, res) => {
   try {
-    const { first_name, last_name, email, phone, password, roles, is_verified, status } = req.body;
+    const { first_name, last_name, email, phone, password, roles, is_verified } = req.body;
     
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email } });
     
     if (existingUser) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Email already in use'
+      req.flash('error', 'Email already in use');
+      // Fetch all users before rendering
+      const users = await User.findAll({
+        include: [{
+          model: Role,
+          through: { attributes: [] }
+        }],
+        attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] }
+      });
+      return res.render('users/allusers', {
+        messages: req.flash(),
+        data: {
+          users
+        }
       });
     }
     
@@ -150,15 +147,36 @@ exports.createUser = async (req, res) => {
       const existingPhone = await User.findOne({ where: { phone } });
       
       if (existingPhone) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Phone number already in use'
+        req.flash('error', 'Phone number already in use');
+        // Fetch all users before rendering
+        const users = await User.findAll({
+          include: [{
+            model: Role,
+            through: { attributes: [] }
+          }],
+          attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] }
+        });
+        return res.render('users/allusers', {
+          messages: req.flash(),
+          data: {
+            users
+          }
         });
       }
     }
     
     // Hash password
     const hashedPassword = await security.hashPassword(password);
+    
+    // Initialize verificationToken
+    let verificationToken = '';
+    let status = 'active' ; 
+    
+    // Generate verification token if user is not verified
+    if(is_verified == 0){
+      verificationToken = security.generateRandomToken();
+      status = 'inactive';
+    }
     
     // Create user
     const user = await User.create({
@@ -167,30 +185,51 @@ exports.createUser = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
+      verification_token: verificationToken,
       is_verified: is_verified || false,
-      status: status || 'inactive'
+      status: status
     });
     
     // Assign roles if provided
     if (roles && roles.length > 0) {
-      const userRoles = await Role.findAll({
-        where: {
-          name: {
-            [db.Sequelize.Op.in]: roles
+      if (Array.isArray(roles)) {
+        // If roles is an array, find all matching roles
+        const userRoles = await Role.findAll({
+          where: {
+            name: {
+              [db.Sequelize.Op.in]: roles
+            }
           }
+        });
+
+        if (userRoles.length > 0) {
+          await user.setRoles(userRoles);
         }
-      });
-      
-      if (userRoles.length > 0) {
-        await user.setRoles(userRoles);
+      } else {
+        // If roles is a string (single role), find that role
+        const userRole = await Role.findOne({ where: { name: roles } });
+
+        if (userRole) {
+          await user.addRole(userRole);
+        }
       }
     } else {
       // Assign default 'user' role if no roles specified
       const userRole = await Role.findOne({ where: { name: 'user' } });
-      
+
       if (userRole) {
         await user.addRole(userRole);
       }
+    }
+
+    // Only send verification email if user is not verified
+    if (is_verified == 0) {
+      const otp = await otpService.generateOTP(user.id, 'verification');
+      await emailService.sendVerificationEmail(email, {
+        code: otp.code,
+        name: `${first_name} ${last_name}`,
+        verificationUrl: `${process.env.APP_URL}/verify-email?token=${verificationToken}`
+      });
     }
     
     // Fetch user with roles
@@ -204,22 +243,52 @@ exports.createUser = async (req, res) => {
       attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] }
     });
     
+    // Fetch all users for display
+    const users = await User.findAll({
+      include: [{
+        model: Role,
+        through: { attributes: [] }
+      }],
+      attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] }
+    });
+    
     // Return created user
-    res.status(201).json({
-      status: 'success',
-      message: 'User created successfully',
+    req.flash('success', 'User Created Successfully');
+    return res.render('users/allusers', {
+      messages: req.flash(),
       data: {
-        user: createdUser
+        users
       }
     });
   } catch (error) {
     logger.error(`Error creating user: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to create user'
-    });
+    req.flash('error', error.message);
+    
+    // Fetch all users in case of error too
+    try {
+      const users = await User.findAll({
+        include: [{
+          model: Role,
+          through: { attributes: [] }
+        }],
+        attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] }
+      });
+      
+      return res.render('users/allusers', {
+        messages: req.flash(),
+        data: {
+          users
+        }
+      });
+    } catch (fetchError) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Failed to create user and fetch user list'
+      });
+    }
   }
 };
+
 
 /**
  * Update user
@@ -229,8 +298,7 @@ exports.createUser = async (req, res) => {
  */
 exports.updateUser = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { first_name, last_name, email, phone, roles, is_verified, status } = req.body;
+    const { role, status,id } = req.body;
     
     // Get user
     const user = await User.findByPk(id);
@@ -242,55 +310,24 @@ exports.updateUser = async (req, res) => {
       });
     }
     
-    // Check if email is unique if changing
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ where: { email } });
-      
-      if (existingUser) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Email already in use'
-        });
-      }
-    }
-    
-    // Check if phone is unique if changing
-    if (phone && phone !== user.phone) {
-      const existingPhone = await User.findOne({ where: { phone } });
-      
-      if (existingPhone) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Phone number already in use'
-        });
-      }
-    }
-    
     // Prepare update data
     const updateData = {};
     
-    if (first_name !== undefined) updateData.first_name = first_name;
-    if (last_name !== undefined) updateData.last_name = last_name;
-    if (email !== undefined) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
-    if (is_verified !== undefined) updateData.is_verified = is_verified;
     if (status !== undefined) updateData.status = status;
     
     // Update user
     await user.update(updateData);
     
-    // Update roles if provided
-    if (roles && roles.length > 0) {
-      const userRoles = await Role.findAll({
+    // Update role if provided
+    if (role) {
+      const userRole = await Role.findOne({
         where: {
-          name: {
-            [db.Sequelize.Op.in]: roles
-          }
+          name: role
         }
       });
       
-      if (userRoles.length > 0) {
-        await user.setRoles(userRoles);
+      if (userRole) {
+        await user.setRoles([userRole]);
       }
     }
     
@@ -308,7 +345,7 @@ exports.updateUser = async (req, res) => {
     // Return updated user
     res.status(200).json({
       status: 'success',
-      message: 'User updated successfully',
+      message: 'User status and role updated successfully',
       data: {
         user: updatedUser
       }
@@ -375,7 +412,7 @@ exports.resetUserPassword = async (req, res) => {
  */
 exports.deleteUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
     
     // Get user
     const user = await User.findByPk(id);
@@ -451,9 +488,6 @@ exports.deleteUser = async (req, res) => {
  */
 exports.getAllDepartments = async (req, res) => {
   try {
-    // Parse pagination parameters
-    const { page, limit } = helpers.parsePaginationQuery(req.query);
-    
     // Build query
     const query = {
       include: [
@@ -463,29 +497,17 @@ exports.getAllDepartments = async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['name', 'ASC']],
-      ...helpers.getPaginationOptions(page, limit)
+      order: [['name', 'ASC']]
     };
     
-    // Apply filters
-    if (req.query.search) {
-      query.where = {
-        name: { [db.Sequelize.Op.like]: `%${req.query.search}%` }
-      };
-    }
-    
     // Execute query
-    const { count, rows: departments } = await Department.findAndCountAll(query);
-    
-    // Generate pagination metadata
-    const pagination = helpers.getPaginationMetadata(count, limit, page);
+    const departments = await Department.findAll(query);
     
     // Return departments
     res.status(200).json({
       status: 'success',
       data: {
-        departments,
-        pagination
+        departments
       }
     });
   } catch (error) {
@@ -892,7 +914,7 @@ exports.renderDashboard = async (req, res) => {
       },
       recentUsers,
       upcomingEvents
-    });
+    }); 
   } catch (error) {
     logger.error(`Error rendering admin dashboard: ${error.message}`);
     req.flash('error_msg', 'Error loading dashboard');
@@ -911,11 +933,8 @@ exports.renderUsersPage = async (req, res) => {
     // Get roles
     const roles = await Role.findAll();
     
-    // Get users with pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    
-    const { count, rows: users } = await User.findAndCountAll({
+    // Get all users
+    const users = await User.findAll({
       include: [
         {
           model: Role,
@@ -923,28 +942,14 @@ exports.renderUsersPage = async (req, res) => {
         }
       ],
       attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] },
-      order: [['created_at', 'DESC']],
-      offset: (page - 1) * limit,
-      limit
+      order: [['created_at', 'DESC']]
     });
-    
-    // Calculate pagination
-    const totalPages = Math.ceil(count / limit);
     
     res.render('admin/users', {
       title: 'Users Management',
       user: req.user,
       users,
-      roles,
-      pagination: {
-        page,
-        limit,
-        totalItems: count,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      },
-      query: req.query
+      roles
     });
   } catch (error) {
     logger.error(`Error rendering users page: ${error.message}`);

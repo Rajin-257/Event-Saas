@@ -114,7 +114,8 @@ exports.updateProfile = async (req, res) => {
         }
       }
       
-      updateData.profile_image = req.file.path.replace('public/', '');
+      const filePath = req.file.path.replace(/^public[\/\\]/, '').replace(/\\/g, '/');
+      updateData.profile_image = filePath;
     }
     
     // Update user

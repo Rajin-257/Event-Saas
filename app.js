@@ -21,6 +21,7 @@ const guestRoutes = require('./routes/guestRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const eventGuestRoutes = require('./routes/eventGuestRoutes');
+require('dotenv').config();
 
 // Error handler middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -40,6 +41,11 @@ app.set('view engine', 'ejs');
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+app.use((req, res, next) => {
+  res.locals.APP_URL = process.env.APP_URL;
+  next();
+});
 
 // Set security HTTP headers
 app.use(
