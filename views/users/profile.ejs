@@ -1,386 +1,278 @@
-<!DOCTYPE html>
-<html lang="en">
+<%- include('../partials/html.ejs') %>
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> | Event Management System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="/css/style.css">
+    <%- include("../partials/title-meta.ejs", {title: "User Profile"}) %>
+
+    <%- include('../partials/head-css.ejs') %>
 </head>
-<body class="bg-light">
-  <%- include('../partials/header') %>
-  
-  <div class="container-fluid">
-    <div class="row">
-      <%- include('../partials/sidebar') %>
-      
-      <div class="col-lg-10 col-md-12 px-4 py-4">
-        <!-- Alert messages -->
-        <% if(success_msg != '') { %>
-          <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <%= success_msg %>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        <% } %>
-        
-        <% if(error_msg != '') { %>
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <%= error_msg %>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        <% } %>
-        
-        <h1 class="h3 mb-4">My Profile</h1>
-        
-        <div class="row">
-          <div class="col-lg-4 mb-4">
-            <div class="card">
-              <div class="card-body text-center">
-                <% if (user.profile_image) { %>
-                  <img src="/<%= user.profile_image %>" alt="Profile" class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
-                <% } else { %>
-                  <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
-                    <i class="bi bi-person text-secondary" style="font-size: 5rem;"></i>
-                  </div>
-                <% } %>
-                
-                <h5 class="mb-1"><%= user.first_name %> <%= user.last_name %></h5>
-                <p class="text-muted">
-                  <% if (user.Roles && user.Roles.length > 0) { %>
-                    <% user.Roles.forEach((role, index) => { %>
-                      <span class="badge bg-primary"><%= role.name.charAt(0).toUpperCase() + role.name.slice(1) %></span>
-                    <% }); %>
-                  <% } %>
-                </p>
-                
-                <div class="mt-3">
-                  <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateProfileImageModal">
-                    <i class="bi bi-camera me-2"></i> Change Photo
-                  </button>
+
+<body>
+    <!-- Begin page -->
+    <div class="wrapper">
+
+        <%- include('../partials/menu.ejs') %>
+
+        <!-- ============================================================== -->
+        <!-- Start Page Content here -->
+        <!-- ============================================================== -->
+        <div class="page-content">
+
+            <div class="page-container">
+
+                <%- include("../partials/page-title.ejs", {subtitle:"Account", title:"User Profile"}) %>
+
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <div class="pt-2 pb-2">
+                                    <% if (user.profile_image) { %>
+                                        <img src="<%= user.profile_image %>" alt="profile-image" class="rounded-circle avatar-xl">
+                                    <% } else { %>
+                                        <div class="rounded-circle avatar-xl d-inline-flex align-items-center justify-content-center bg-primary text-white fs-1">
+                                            <%= user.first_name.charAt(0) %><%= user.last_name.charAt(0) %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                <h4 class="mt-3 mb-0"><%= user.first_name %> <%= user.last_name %></h4>
+                                <p class="text-muted"><%= user.Roles[0].name.charAt(0).toUpperCase() + user.Roles[0].name.slice(1) %></p>
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-body">
+                                <ul class="nav nav-tabs nav-bordered" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" data-bs-toggle="tab" href="#profile-details" role="tab">Account Details</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#profile-activity" role="tab">Recent Activity</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#profile-settings" role="tab">Settings</a>
+                                    </li>
+                                </ul>
+                                <div class="tab-content">
+                                    <div class="tab-pane active" id="profile-details">
+                                        <h5 class="mt-3">User Information</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-borderless mb-0">
+                                                <tbody>
+                                                    <tr>
+                                                        <th scope="row">Full Name</th>
+                                                        <td><%= user.first_name %> <%= user.last_name %></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Role</th>
+                                                        <td><%= user.Roles[0].name.charAt(0).toUpperCase() + user.Roles[0].name.slice(1) %> - <%= user.Roles[0].description %></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Email</th>
+                                                        <td><%= user.email %></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Phone</th>
+                                                        <td><%= user.phone %></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Account Status</th>
+                                                        <td><span class="badge bg-success"><%= user.status.charAt(0).toUpperCase() + user.status.slice(1) %></span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Account Created</th>
+                                                        <td><%= new Date(user.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row">Last Login</th>
+                                                        <td><%= new Date(user.last_login).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane" id="profile-activity">
+                                        <h5 class="mt-3">Recent Activity</h5>
+                                        <div class="timeline-alt pb-0">
+                                            <div class="timeline-item">
+                                                <i class="mdi mdi-login bg-info-lighten text-info timeline-icon"></i>
+                                                <div class="timeline-item-info">
+                                                    <h5 class="mt-0 mb-1">Logged In</h5>
+                                                    <p class="font-14">
+                                                        Successfully logged in to the system
+                                                        <small class="text-muted"><%= new Date(user.last_login).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="timeline-item">
+                                                <i class="mdi mdi-account-edit bg-primary-lighten text-primary timeline-icon"></i>
+                                                <div class="timeline-item-info">
+                                                    <h5 class="mt-0 mb-1">Profile Updated</h5>
+                                                    <p class="font-14">
+                                                        Account information was updated
+                                                        <small class="text-muted"><%= new Date(user.updated_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="timeline-item">
+                                                <i class="mdi mdi-account-check bg-success-lighten text-success timeline-icon"></i>
+                                                <div class="timeline-item-info">
+                                                    <h5 class="mt-0 mb-1">Account Created</h5>
+                                                    <p class="font-14">
+                                                        User account was successfully created
+                                                        <small class="text-muted"><%= new Date(user.created_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %></small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane" id="profile-settings">
+                                        <h5 class="mt-3 mb-3">Account Settings</h5>
+                                        <form action="/profile" method="put">
+                                            <div class="row mb-3">
+                                                <label for="inputFirstName" class="col-sm-3 col-form-label">First Name</label>
+                                                <div class="col-sm-9">
+                                                    <input type="text" class="form-control" id="inputFirstName" name="first_name" value="<%= user.first_name %>">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <label for="inputLastName" class="col-sm-3 col-form-label">Last Name</label>
+                                                <div class="col-sm-9">
+                                                    <input type="text" class="form-control" id="inputLastName" name="last_name" value="<%= user.last_name %>">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <label for="inputEmail" class="col-sm-3 col-form-label">Email</label>
+                                                <div class="col-sm-9">
+                                                    <input type="email" class="form-control" id="inputEmail" name="email" value="<%= user.email %>">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <label for="inputPhone" class="col-sm-3 col-form-label">Phone</label>
+                                                <div class="col-sm-9">
+                                                    <input type="text" class="form-control" id="inputPhone" name="phone" value="<%= user.phone %>">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <label for="inputProfileImage" class="col-sm-3 col-form-label">Profile Image</label>
+                                                <div class="col-sm-9">
+                                                    <input type="file" class="form-control" name="profile_image" id="inputProfileImage">
+                                                </div>
+                                            </div>
+                                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                                <button type="button" class="btn btn-light me-md-2">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+
+                                        <hr>
+
+                                        <h5 class="mt-4 mb-3">Security Settings</h5>
+                                        <form>
+                                            <div class="row mb-3">
+                                                <label for="inputCurrentPassword" class="col-sm-3 col-form-label">Current Password</label>
+                                                <div class="col-sm-9">
+                                                    <input type="password" class="form-control" id="inputCurrentPassword" placeholder="Enter current password">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <label for="inputNewPassword" class="col-sm-3 col-form-label">New Password</label>
+                                                <div class="col-sm-9">
+                                                    <input type="password" class="form-control" id="inputNewPassword" placeholder="Enter new password">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <label for="inputConfirmPassword" class="col-sm-3 col-form-label">Confirm Password</label>
+                                                <div class="col-sm-9">
+                                                    <input type="password" class="form-control" id="inputConfirmPassword" placeholder="Confirm new password">
+                                                </div>
+                                            </div>
+                                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                                <button type="button" class="btn btn-light me-md-2">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Update Password</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-            
-            <div class="card mt-4">
-              <div class="card-header">
-                <h5 class="mb-0">Account Information</h5>
-              </div>
-              <div class="card-body">
-                <ul class="list-group list-group-flush">
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>Email</span>
-                    <span class="text-primary"><%= user.email %></span>
-                  </li>
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>Phone</span>
-                    <span class="text-primary"><%= user.phone || 'Not set' %></span>
-                  </li>
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>Status</span>
-                    <% if (user.status === 'active') { %>
-                      <span class="badge bg-success">Active</span>
-                    <% } else if (user.status === 'inactive') { %>
-                      <span class="badge bg-warning">Inactive</span>
-                    <% } else { %>
-                      <span class="badge bg-danger">Suspended</span>
-                    <% } %>
-                  </li>
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>Joined</span>
-                    <span><%= new Date(user.created_at).toLocaleDateString() %></span>
-                  </li>
-                  <% if (user.last_login) { %>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                      <span>Last Login</span>
-                      <span><%= new Date(user.last_login).toLocaleString() %></span>
-                    </li>
-                  <% } %>
-                </ul>
-              </div>
-            </div>
-            
-            <div class="card mt-4">
-              <div class="card-header">
-                <h5 class="mb-0">Security</h5>
-              </div>
-              <div class="card-body">
-                <div class="d-grid">
-                  <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-                    <i class="bi bi-key me-2"></i> Change Password
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-lg-8">
-            <div class="card">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Personal Information</h5>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#updateProfileModal">
-                  <i class="bi bi-pencil me-2"></i> Edit
-                </button>
-              </div>
-              <div class="card-body">
-                <form>
-                  <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">First Name</label>
-                    <div class="col-sm-9">
-                      <input type="text" class="form-control-plaintext" value="<%= user.first_name %>" readonly>
-                    </div>
-                  </div>
-                  
-                  <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Last Name</label>
-                    <div class="col-sm-9">
-                      <input type="text" class="form-control-plaintext" value="<%= user.last_name %>" readonly>
-                    </div>
-                  </div>
-                  
-                  <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Email</label>
-                    <div class="col-sm-9">
-                      <input type="email" class="form-control-plaintext" value="<%= user.email %>" readonly>
-                    </div>
-                  </div>
-                  
-                  <div class="row mb-3">
-                    <label class="col-sm-3 col-form-label">Phone</label>
-                    <div class="col-sm-9">
-                      <input type="tel" class="form-control-plaintext" value="<%= user.phone || 'Not set' %>" readonly>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-            
-            <div class="row mt-4">
-              <div class="col-md-6 mb-4">
-                <div class="card dashboard-card dashboard-card-events h-100">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="text-muted">My Tickets</h6>
-                        <h2 class="mb-0">3</h2>
-                      </div>
-                      <div class="bg-primary bg-opacity-10 p-3 rounded">
-                        <i class="bi bi-ticket-perforated text-primary fs-1"></i>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-footer bg-transparent border-0">
-                    <a href="/tickets/user" class="text-decoration-none">View all tickets <i class="bi bi-arrow-right"></i></a>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-4">
-                <div class="card dashboard-card dashboard-card-tickets h-100">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="text-muted">Upcoming Events</h6>
-                        <h2 class="mb-0">2</h2>
-                      </div>
-                      <div class="bg-success bg-opacity-10 p-3 rounded">
-                        <i class="bi bi-calendar-event text-success fs-1"></i>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-footer bg-transparent border-0">
-                    <a href="/events" class="text-decoration-none">Browse events <i class="bi bi-arrow-right"></i></a>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="card mt-4">
-              <div class="card-header">
-                <h5 class="mb-0">Recent Activity</h5>
-              </div>
-              <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                  <div class="list-group-item">
-                    <div class="d-flex w-100 justify-content-between">
-                      <h6 class="mb-1">Purchased Ticket</h6>
-                      <small class="text-muted">3 days ago</small>
-                    </div>
-                    <p class="mb-1">You purchased a ticket for <a href="#">Annual Tech Conference</a>.</p>
-                  </div>
-                  <div class="list-group-item">
-                    <div class="d-flex w-100 justify-content-between">
-                      <h6 class="mb-1">Updated Profile</h6>
-                      <small class="text-muted">1 week ago</small>
-                    </div>
-                    <p class="mb-1">You updated your profile information.</p>
-                  </div>
-                  <div class="list-group-item">
-                    <div class="d-flex w-100 justify-content-between">
-                      <h6 class="mb-1">Account Created</h6>
-                      <small class="text-muted">2 weeks ago</small>
-                    </div>
-                    <p class="mb-1">You created your account.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                <!-- end row -->
+
+            </div> <!-- container -->
+
+            <%- include('../partials/footer.ejs') %>
+
         </div>
-      </div>
+
+        <!-- ============================================================== -->
+        <!-- End Page content -->
+        <!-- ============================================================== -->
+
     </div>
-  </div>
-  
-  <%- include('../partials/footer') %>
-  
-  <!-- Update Profile Modal -->
-  <div class="modal fade" id="updateProfileModal" tabindex="-1" aria-labelledby="updateProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="updateProfileModalLabel">Update Profile</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <form action="/users/profile" method="POST">
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="first_name" class="form-label">First Name</label>
-              <input type="text" class="form-control" id="first_name" name="first_name" value="<%= user.first_name %>" required>
-            </div>
+    <!-- END wrapper -->
+
+    <%- include('../partials/customizer.ejs') %>
+
+    <%- include('../partials/footer-scripts.ejs') %>
+
+    <!--Morris Chart-->
+    <script src="/admin/libs/morris.js/morris.min.js"></script>
+    <script src="/admin/libs/raphael/raphael.min.js"></script>
+
+    <!-- Profile page js -->
+    <script>
+        // Sample data for login statistics chart
+        var loginData = [
+            { y: 'Jan', a: 8 },
+            { y: 'Feb', a: 12 },
+            { y: 'Mar', a: 10 },
+            { y: 'Apr', a: 15 },
+            { y: 'May', a: 8 },
+            { y: 'Jun', a: 12 },
+            { y: 'Jul', a: 14 },
+            { y: 'Aug', a: 10 },
+            { y: 'Sep', a: 18 },
+            { y: 'Oct', a: 11 },
+            { y: 'Nov', a: 14 },
+            { y: 'Dec', a: 10 }
+        ];
+
+        Morris.Bar({
+            element: 'login-statistics-chart',
+            data: loginData,
+            xkey: 'y',
+            ykeys: ['a'],
+            labels: ['Logins'],
+            barColors: ['#3bafda'],
+            hideHover: 'auto',
+            gridLineColor: '#eef0f2',
+            resize: true
+        });
+
+        // Initialize form validation and tab functionality
+        $(function() {
+            // Enable Bootstrap tooltip
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
             
-            <div class="mb-3">
-              <label for="last_name" class="form-label">Last Name</label>
-              <input type="text" class="form-control" id="last_name" name="last_name" value="<%= user.last_name %>" required>
-            </div>
+            // Handle tab persistence
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                localStorage.setItem('activeProfileTab', $(e.target).attr('href'));
+            });
             
-            <div class="mb-3">
-              <label for="phone" class="form-label">Phone</label>
-              <input type="tel" class="form-control" id="phone" name="phone" value="<%= user.phone || '' %>">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Update Profile Image Modal -->
-  <div class="modal fade" id="updateProfileImageModal" tabindex="-1" aria-labelledby="updateProfileImageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="updateProfileImageModalLabel">Change Profile Photo</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <form action="/users/profile/image" method="POST" enctype="multipart/form-data">
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="profile_image" class="form-label">Select Image</label>
-              <input class="form-control" type="file" id="profile_image" name="profile_image" accept="image/*" required>
-              <div class="form-text">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF.</div>
-            </div>
-            
-            <div class="mb-3">
-              <label class="form-label">Preview</label>
-              <div class="text-center">
-                <img id="image-preview" src="#" alt="Preview" class="img-fluid rounded d-none" style="max-height: 200px;">
-                <div id="preview-placeholder" class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px;">
-                  <i class="bi bi-image text-secondary" style="font-size: 3rem;"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Upload</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Change Password Modal -->
-  <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <form action="/change-password" method="POST" id="changePasswordForm">
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="current_password" class="form-label">Current Password</label>
-              <input type="password" class="form-control" id="current_password" name="current_password" required>
-            </div>
-            
-            <div class="mb-3">
-              <label for="new_password" class="form-label">New Password</label>
-              <input type="password" class="form-control" id="new_password" name="new_password" required>
-              <div class="form-text">
-                Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.
-              </div>
-            </div>
-            
-            <div class="mb-3">
-              <label for="password_confirm" class="form-label">Confirm New Password</label>
-              <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Change Password</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Profile image preview
-    document.getElementById('profile_image').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      
-      if (file) {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-          const preview = document.getElementById('image-preview');
-          preview.src = e.target.result;
-          preview.classList.remove('d-none');
-          
-          document.getElementById('preview-placeholder').classList.add('d-none');
-        }
-        
-        reader.readAsDataURL(file);
-      }
-    });
-    
-    // Password validation
-    document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
-      const currentPassword = document.getElementById('current_password').value;
-      const newPassword = document.getElementById('new_password').value;
-      const confirmPassword = document.getElementById('password_confirm').value;
-      
-      // Check if passwords match
-      if (newPassword !== confirmPassword) {
-        e.preventDefault();
-        alert('New passwords do not match');
-        return;
-      }
-      
-      // Check password complexity
-      const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/;
-      
-      if (!passwordRegex.test(newPassword)) {
-        e.preventDefault();
-        alert('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
-      }
-    });
-  </script>
+            var activeTab = localStorage.getItem('activeProfileTab');
+            if(activeTab){
+                $('.nav-tabs a[href="' + activeTab + '"]').tab('show');
+            }
+        });
+    </script>
+
 </body>
+
 </html>

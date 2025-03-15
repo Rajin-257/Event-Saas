@@ -32,9 +32,9 @@ router.put('/api/payment-methods/:id',  validators.validate, adminController.upd
 
 // System stats
 router.get('/api/stats', adminController.getSystemStats);
-
+ 
 // Web Routes
-router.get('/', ensureAuthenticated, ensureRole('admin'), adminController.renderDashboard);
+router.get('/dashboard', ensureAuthenticated, ensureRole('admin'), adminController.renderDashboard);
 router.get('/users', adminController.renderUsersPage);
 router.get('/departments', adminController.renderDepartmentsPage);
 router.get('/payments', adminController.renderPaymentsPage);

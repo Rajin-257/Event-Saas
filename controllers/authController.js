@@ -581,13 +581,10 @@ exports.getProfile = async (req, res) => {
       });
     }
     
-    // Return user profile
-    res.status(200).json({
-      status: 'success',
-      data: {
-        user
-      }
+    res.render('users/profile', {
+      messages: req.flash()
     });
+
   } catch (error) {
     logger.error(`Get profile error: ${error.message}`);
     res.status(500).json({
