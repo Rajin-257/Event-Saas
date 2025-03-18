@@ -7,8 +7,8 @@ const { ensureAuthenticated, ensureRole } = require('../middlewares/auth');
 router.get('/api', ensureAuthenticated,   venueController.getAllVenues);
 router.get('/api/:id', ensureAuthenticated, venueController.getVenueById);
 router.post('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']),   venueController.createVenue);
-router.put('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']),   venueController.updateVenue);
-router.delete('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), venueController.deleteVenue);
+router.post('/api/update', ensureAuthenticated, ensureRole(['admin', 'organizer']),   venueController.updateVenue);
+router.post('/api/delete/', ensureAuthenticated, ensureRole(['admin', 'organizer']), venueController.deleteVenue);
 router.get('/api/:id/events', ensureAuthenticated,  venueController.getVenueEvents);
 
 // Web Routes

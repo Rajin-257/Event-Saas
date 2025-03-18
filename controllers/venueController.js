@@ -18,9 +18,6 @@ const User = db.User;
  */
 exports.getAllVenues = async (req, res) => {
   try {
-    // Parse pagination parameters
-    const { page, limit } = helpers.parsePaginationQuery(req.query);
-    
     // Build query
     const query = {
       include: [
@@ -30,34 +27,18 @@ exports.getAllVenues = async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['name', 'ASC']],
-      ...helpers.getPaginationOptions(page, limit)
+      order: [['name', 'ASC']]
     };
     
-    // Apply filters
-    if (req.query.search) {
-      query.where = {
-        [db.Sequelize.Op.or]: [
-          { name: { [db.Sequelize.Op.like]: `%${req.query.search}%` } },
-          { city: { [db.Sequelize.Op.like]: `%${req.query.search}%` } }
-        ]
-      };
-    }
-    
     // Execute query
-    const { count, rows: venues } = await Venue.findAndCountAll(query);
-    
-    // Generate pagination metadata
-    const pagination = helpers.getPaginationMetadata(count, limit, page);
+    const venues = await Venue.findAll(query);
     
     // Return venues
-    res.status(200).json({
-      status: 'success',
-      data: {
-        venues,
-        pagination
+    res.render('venue/venueDetails',{
+      data:{
+        venues
       }
-    });
+    })
   } catch (error) {
     logger.error(`Error getting venues: ${error.message}`);
     res.status(500).json({
@@ -159,8 +140,7 @@ exports.createVenue = async (req, res) => {
  */
 exports.updateVenue = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, address, city, capacity, description, contact_person, contact_email, contact_phone } = req.body;
+    const { id, name, address, city, capacity, description, contact_person, contact_email, contact_phone } = req.body;
     
     // Get venue
     const venue = await Venue.findByPk(id);
@@ -219,7 +199,7 @@ exports.updateVenue = async (req, res) => {
  */
 exports.deleteVenue = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
     
     // Get venue
     const venue = await Venue.findByPk(id);
@@ -288,9 +268,6 @@ exports.getVenueEvents = async (req, res) => {
       });
     }
     
-    // Parse pagination parameters
-    const { page, limit } = helpers.parsePaginationQuery(req.query);
-    
     // Build query
     const query = {
       where: { venue_id: id },
@@ -301,28 +278,18 @@ exports.getVenueEvents = async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['start_date', 'ASC']],
-      ...helpers.getPaginationOptions(page, limit)
+      order: [['start_date', 'ASC']]
     };
     
-    // Apply status filter if provided
-    if (req.query.status) {
-      query.where.status = req.query.status;
-    }
-    
     // Execute query
-    const { count, rows: events } = await Event.findAndCountAll(query);
-    
-    // Generate pagination metadata
-    const pagination = helpers.getPaginationMetadata(count, limit, page);
+    const events = await Event.findAll(query);
     
     // Return events
     res.status(200).json({
       status: 'success',
       data: {
         venue,
-        events,
-        pagination
+        events
       }
     });
   } catch (error) {

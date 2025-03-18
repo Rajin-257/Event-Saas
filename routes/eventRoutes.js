@@ -44,11 +44,11 @@ const upload = multer({
 
 // API Routes
 // Public routes
-router.get('/api', validators.paginationRules, validators.validate, eventController.getAllEvents);
+router.get('/api',   eventController.getAllEvents);
 router.get('/api/:id', eventController.getEventById);
 
 // Protected routes
-router.post('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('banner_image'), validators.createEventRules, validators.validate, eventController.createEvent);
+router.post('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('banner_image'), validators.createEventRules,  eventController.createEvent);
 router.put('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('banner_image'), eventController.updateEvent);
 router.delete('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), eventController.deleteEvent);
 

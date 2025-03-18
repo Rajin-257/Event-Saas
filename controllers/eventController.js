@@ -23,9 +23,6 @@ const Ticket = db.Ticket;
  */
 exports.getAllEvents = async (req, res) => {
   try {
-    // Parse pagination parameters
-    const { page, limit } = helpers.parsePaginationQuery(req.query);
-    
     // Build query
     const query = {
       where: {},
@@ -40,49 +37,18 @@ exports.getAllEvents = async (req, res) => {
           attributes: ['id', 'first_name', 'last_name']
         }
       ],
-      order: [['start_date', 'ASC']],
-      ...helpers.getPaginationOptions(page, limit)
+      order: [['start_date', 'ASC']]
     };
     
-    // Apply filters
-    if (req.query.status) {
-      query.where.status = req.query.status;
-    }
-    
-    if (req.query.search) {
-      query.where.title = {
-        [db.Sequelize.Op.like]: `%${req.query.search}%`
-      };
-    }
-    
-    // Get only upcoming events if requested
-    if (req.query.upcoming === 'true') {
-      query.where.start_date = {
-        [db.Sequelize.Op.gte]: new Date()
-      };
-    }
-    
-    // Get only past events if requested
-    if (req.query.past === 'true') {
-      query.where.end_date = {
-        [db.Sequelize.Op.lt]: new Date()
-      };
-    }
-    
     // Execute query
-    const { count, rows: events } = await Event.findAndCountAll(query);
-    
-    // Generate pagination metadata
-    const pagination = helpers.getPaginationMetadata(count, limit, page);
+    const events = await Event.findAll(query);
     
     // Return events
-    res.status(200).json({
-      status: 'success',
+    res.render('events/details',{
       data: {
-        events,
-        pagination
+        events
       }
-    });
+    })
   } catch (error) {
     logger.error(`Error getting events: ${error.message}`);
     res.status(500).json({
@@ -687,134 +653,6 @@ exports.renderEventDetailsPage = async (req, res) => {
         {
           model: Guest,
           through: { attributes: [] }
-        },
-        {
-          model: TicketType,
-          where: {
-            is_active: true
-          },
-          required: false
-        }
-      ]
-    });
-    
-    if (!event) {
-      req.flash('error_msg', 'Event not found');
-      return res.redirect('/events');
-    }
-    
-    // Check if event is published
-    if (event.status !== 'published') {
-      // Allow organizer or admin to view
-      const isOrganizer = event.created_by === req.user.id;
-      const isAdmin = req.user && req.user.Roles.some(role => role.name === 'admin');
-      
-      if (!isOrganizer && !isAdmin) {
-        req.flash('error_msg', 'Event not available');
-        return res.redirect('/events');
-      }
-    }
-    
-    // Render event details page
-    res.render('events/details', {
-      title: event.title,
-      event,
-      formattedStartDate: helpers.formatDate(event.start_date),
-      formattedEndDate: helpers.formatDate(event.end_date),
-      formattedStartTime: helpers.formatTime(event.start_time),
-      formattedEndTime: helpers.formatTime(event.end_time)
-    });
-  } catch (error) {
-    logger.error(`Error rendering event details page: ${error.message}`);
-    req.flash('error_msg', 'Failed to load event details');
-    res.redirect('/events');
-  }
-};
-
-/**
- * Get event by ID
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.getEventById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Get event with relationships
-    const event = await Event.findByPk(id, {
-      include: [
-        {
-          model: Venue,
-          attributes: ['id', 'name', 'address', 'city', 'capacity', 'contact_person', 'contact_email', 'contact_phone']
-        },
-        {
-          model: User,
-          as: 'Creator',
-          attributes: ['id', 'first_name', 'last_name', 'email']
-        },
-        {
-          model: Guest,
-          through: { 
-            attributes: ['role'] // Include role from junction table
-          }
-        },
-        {
-          model: TicketType,
-          include: [
-            {
-              model: Ticket,
-              attributes: ['id', 'ticket_code', 'status', 'payment_status', 'checked_in', 'checked_in_at', 'created_at']
-            }
-          ]
-        }
-      ]
-    });
-    
-    if (!event) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Event not found'
-      });
-    }
-    
-    // Return event
-    res.status(200).json({
-      status: 'success',
-      data: {
-        event
-      }
-    });
-  } catch (error) {
-    logger.error(`Error getting event: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch event'
-    });
-  }
-};
-/**
- * Render event details page
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.renderEventDetailsPage = async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Get event with relationships
-    const event = await Event.findByPk(id, {
-      include: [
-        {
-          model: Venue,
-          attributes: ['id', 'name', 'address', 'city']
-        },
-        {
-          model: Guest,
-          through: { 
-            attributes: ['role'] // Include role from junction table
-          }
         },
         {
           model: TicketType,
