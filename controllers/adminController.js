@@ -488,37 +488,46 @@ exports.deleteUser = async (req, res) => {
  */
 exports.getAllDepartments = async (req, res) => {
   try {
-    // Build query
-    const query = {
+    // Fetch departments with creator information
+    const departments = await Department.findAll({
       include: [
         {
-          model: User,
-          as: 'Creator',
-          attributes: ['id', 'first_name', 'last_name']
+          model: User,  // Assuming your User model is imported as 'User'
+          as: 'Creator', // This should match your association alias
+          attributes: ['id', 'first_name', 'last_name'],
         }
       ],
-      order: [['name', 'ASC']]
-    };
+      order: [['created_at', 'DESC']]
+    });
     
-    // Execute query
-    const departments = await Department.findAll(query);
+    // Map the results to include creator name
+    const formattedDepartments = departments.map(dept => {
+      const deptObj = dept.toJSON();
+      
+      // Format the creator name if available
+      deptObj.created_by = dept.Creator ? 
+        `${dept.Creator.first_name} ${dept.Creator.last_name}` : 
+        'N/A';
+      
+      return deptObj;
+    });
     
-    // Return departments
-    res.status(200).json({
-      status: 'success',
+    // Render the department page with data
+    res.render('guest/department', {
       data: {
-        departments
+        departments: formattedDepartments
       }
     });
   } catch (error) {
-    logger.error(`Error getting departments: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch departments'
+    logger.error(`Error fetching departments: ${error.message}`);
+    res.render('admin/departments', {
+      error: 'Failed to load departments',
+      data: {
+        departments: []
+      }
     });
   }
 };
-
 /**
  * Create department
  * @param {Request} req - Express request object
@@ -571,8 +580,7 @@ exports.createDepartment = async (req, res) => {
  */
 exports.updateDepartment = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description,id } = req.body;
     
     // Get department
     const department = await Department.findByPk(id);
@@ -627,7 +635,7 @@ exports.updateDepartment = async (req, res) => {
  */
 exports.deleteDepartment = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
     
     // Get department
     const department = await Department.findByPk(id);

@@ -44,11 +44,11 @@ const upload = multer({
 
 
 // API Routes
-router.get('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']), validators.paginationRules, validators.validate, guestController.getAllGuests);
+router.get('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']),  guestController.getAllGuests);
 router.get('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.getGuestById);
-router.post('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('profile_image'),  validators.validate, guestController.createGuest);
-router.put('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('profile_image'),  validators.validate, guestController.updateGuest);
-router.delete('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.deleteGuest);
+router.post('/api/create/guest', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('profile_image'),  guestController.createGuest);
+router.post('/api/update/guest', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('profile_image'),  guestController.updateGuest);
+router.post('/api/delete/guest', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.deleteGuest);
 
 // Guest event management
 router.get('/api/:id/events', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.getGuestEvents);
@@ -57,8 +57,5 @@ router.delete('/api/:id/events/:event_id', ensureAuthenticated, ensureRole(['adm
 
 // Web Routes
 router.get('/', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.renderGuestsPage);
-router.get('/create', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.renderCreateGuestPage);
-router.get('/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.renderGuestDetailsPage);
-router.get('/:id/edit', ensureAuthenticated, ensureRole(['admin', 'organizer']), guestController.renderEditGuestPage);
 
 module.exports = router;

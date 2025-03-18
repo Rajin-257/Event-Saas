@@ -22,8 +22,8 @@ router.post('/api/delUsers', adminController.deleteUser);
 // Department management
 router.get('/api/departments',  adminController.getAllDepartments);
 router.post('/api/departments',   adminController.createDepartment);
-router.put('/api/departments/:id',   adminController.updateDepartment);
-router.delete('/api/departments/:id', adminController.deleteDepartment);
+router.post('/api/departments/update',   adminController.updateDepartment);
+router.post('/api/departments/delete', adminController.deleteDepartment);
 
 // Payment method management
 router.get('/api/payment-methods', adminController.getAllPaymentMethods);
