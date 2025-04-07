@@ -38,6 +38,116 @@ module.exports = {
     }
   },
 
+  // Controller method to get attendees data with referral information
+getEventAttendees : async (req, res) => {
+  try {
+    // Get the event ID from the request parameters
+    const eventId = req.params.id;
+    
+    // First verify the event exists
+    const event = await Event.findByPk(eventId);
+    if (!event) {
+      req.flash('error_msg', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    // Get all tickets for this event with attendee and referrer information
+    const attendees = await Ticket.findAll({
+      where: { 
+        eventId,
+        status: { [Op.notIn]: ['cancelled', 'refunded'] } // Only include valid tickets
+      },
+      include: [
+        {
+          model: User,
+          as: 'attendee',
+          attributes: ['id', 'name', 'email', 'phone', 'profileImage', 'referralCode']
+        },
+        {
+          model: User,
+          as: 'referrer',
+          attributes: ['id', 'name', 'email', 'referralCode']
+        },
+        {
+          model: TicketType,
+          attributes: ['id', 'name', 'type', 'price']
+        }
+      ],
+      order: [['purchaseDate', 'DESC']]
+    });
+    
+    // Get referral statistics for this event
+    const referralStats = await Referral.findAll({
+      attributes: [
+        'referrerId',
+        [sequelize.fn('COUNT', sequelize.col('Referral.id')), 'referralCount'],
+        [sequelize.fn('SUM', sequelize.col('Referral.commissionAmount')), 'totalCommission']
+      ],
+      include: [
+        {
+          model: Ticket,
+          where: { eventId },
+          attributes: []
+        },
+        {
+          model: User,
+          as: 'referrer',
+          attributes: ['name', 'email', 'referralCode']
+        }
+      ],
+      where: {
+        status: 'completed'
+      },
+      group: ['referrerId', 'referrer.id'],
+      order: [[sequelize.literal('referralCount'), 'DESC']]
+    });
+    
+    // Get ticket type statistics - FIX: Specify table name for id column
+    const ticketTypeStats = await Ticket.findAll({
+      attributes: [
+        'ticketTypeId',
+        [sequelize.fn('COUNT', sequelize.col('Ticket.id')), 'ticketCount'],
+        [sequelize.fn('SUM', sequelize.col('Ticket.finalPrice')), 'totalRevenue']
+      ],
+      where: { 
+        eventId,
+        status: { [Op.notIn]: ['cancelled', 'refunded'] }
+      },
+      include: [
+        {
+          model: TicketType,
+          attributes: ['name', 'type', 'price']
+        }
+      ],
+      group: ['ticketTypeId', 'TicketType.id'],
+      order: [[sequelize.literal('ticketCount'), 'DESC']]
+    });
+    
+    // Summary statistics
+    const summary = {
+      totalAttendees: attendees.length,
+      totalRevenue: attendees.reduce((sum, ticket) => sum + parseFloat(ticket.finalPrice), 0),
+      totalReferrals: attendees.filter(ticket => ticket.referrerId).length,
+      totalCommissions: referralStats.reduce((sum, stat) => sum + parseFloat(stat.dataValues.totalCommission || 0), 0)
+    };
+    
+    // Render the view with all the data
+    res.render('events/attendees', {
+      title: `${event.title} - Attendees`,
+      event,
+      attendees,
+      referralStats,
+      ticketTypeStats,
+      summary
+    });
+    
+  } catch (err) {
+    console.error('Error fetching event attendees:', err);
+    req.flash('error_msg', 'Failed to load attendee information');
+    res.redirect('/events');
+  }
+},
+
   // Add new ticket type
   addTicketType: async (req, res) => {
     try {
@@ -46,7 +156,7 @@ module.exports = {
         name, description, price, quantity, type,
         saleStartDate, saleEndDate 
       } = req.body;
-
+  
       // Validation
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -57,21 +167,60 @@ module.exports = {
           event: { id: eventId }
         });
       }
-
-      // Create ticket type
+  
+      // Get max attendance
+      const event = await Event.findOne({
+        where: { id: eventId },
+        attributes: ['maxAttendees']
+      });
+  
+      if (!event) {
+        req.flash('error_msg', 'Event not found');
+        return res.redirect('/events');
+      }
+  
+      const maxAttendance = event.maxAttendees;
+  
+      // Get existing ticket quantity
+      const existingQuantity = await TicketType.sum('quantity', {
+        where: { eventId: eventId }
+      });
+  
+      const newQuantity = parseInt(quantity);
+      if (isNaN(newQuantity) || newQuantity <= 0) {
+        req.flash('error_msg', 'Quantity must be a valid positive number');
+        return res.redirect(`/tickets/events/${eventId}/tickets`);
+      }
+  
+      const totalAfterAdd = (existingQuantity || 0) + newQuantity;
+      const remainingTickets = maxAttendance - (existingQuantity || 0);
+  
+      if (totalAfterAdd > maxAttendance) {
+        req.flash(
+          'error_msg',
+          `Cannot add ticket: Total quantity (${totalAfterAdd}) exceeds event max attendance (${maxAttendance}), You Can Add (${remainingTickets}) `
+        );
+        return res.redirect(`/tickets/events/${eventId}/tickets`);
+      }
+  
+      // Parse sale dates safely
+      const startDate = saleStartDate ? new Date(saleStartDate) : null;
+      const endDate = saleEndDate ? new Date(saleEndDate) : null;
+  
+      // Create ticket
       await TicketType.create({
         eventId,
         name,
         description,
         price,
-        quantity,
-        availableQuantity: quantity,
+        quantity: newQuantity,
+        availableQuantity: newQuantity,
         type,
-        saleStartDate,
-        saleEndDate,
+        saleStartDate: startDate,
+        saleEndDate: endDate,
         isActive: true
       });
-
+  
       req.flash('success_msg', 'Ticket type added successfully');
       res.redirect(`/tickets/events/${eventId}/tickets`);
     } catch (err) {
@@ -80,6 +229,8 @@ module.exports = {
       res.redirect(`/tickets/events/${req.params.id}/tickets`);
     }
   },
+  
+  
 
   // Update ticket type
   updateTicketType: async (req, res) => {
@@ -553,6 +704,9 @@ module.exports = {
       res.redirect(`/events/${req.body.eventId}/book`);
     }
   },
+  //
+  
+  
 
   // View user's tickets
   getMyTickets: async (req, res) => {

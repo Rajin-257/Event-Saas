@@ -149,7 +149,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/registrations/<%= event.id %>">
+                        <a class="nav-link" href="/tickets/events/<%= event.id %>/attendees">
                             <i class="ri-group-line me-1"></i> Attendees
                         </a>
                     </li>
@@ -440,9 +440,9 @@
                                     <p class="text-muted" id="deleteTicketMessage">
                                         Do you really want to delete this ticket type? This action cannot be undone.
                                     </p>
-                                    <div class="alert alert-warning">
+                                    <div class="alert alert-danger">
                                         <i class="ri-information-line me-2"></i>
-                                        Ticket types with sold tickets cannot be deleted.
+                                        Ticket types with sold tickets Also delete Please aware.
                                     </div>
                                 </div>
                             </div>

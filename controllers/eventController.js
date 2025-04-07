@@ -5,6 +5,8 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
+const { Op } = require('sequelize');
+
 
 module.exports = {
   getAllEvents: async (req, res) => {
@@ -227,29 +229,45 @@ module.exports = {
   togglePublishEvent: async (req, res) => {
     try {
       const eventId = req.params.id;
-      
+  
       const event = await Event.findByPk(eventId);
-      
+  
       if (!event) {
         req.flash('error_msg', 'Event not found');
         return res.redirect('/dashboard');
       }
-
-      // Make sure event has at least one ticket type before publishing
+  
+      // Check if trying to publish (not unpublish)
       if (!event.isPublished) {
+        // Ensure the event has at least one ticket type
         const ticketTypes = await TicketType.findAll({ where: { eventId } });
         if (ticketTypes.length === 0) {
           req.flash('error_msg', 'Cannot publish event without ticket types');
           return res.redirect(`/events/${eventId}/edit`);
         }
+  
+        // Check if another event is already published
+        const publishedEvent = await Event.findOne({
+          where: {
+            isPublished: true,
+            id: { [Op.ne]: eventId } // not the current event
+          }
+        });
+  
+        if (publishedEvent) {
+          req.flash('error_msg', `Another event (${publishedEvent.title}) is already published. Unpublish it first.`);
+          return res.redirect(`/events/${eventId}`);
+        }
       }
-
+  
       // Toggle publish status
       await event.update({
         isPublished: !event.isPublished
       });
-
-      const message = event.isPublished ? 'Event published successfully' : 'Event unpublished';
+  
+      const message = event.isPublished
+        ? 'Event published successfully'
+        : 'Event unpublished';
       req.flash('success_msg', message);
       res.redirect(`/events/${eventId}`);
     } catch (err) {
@@ -258,6 +276,7 @@ module.exports = {
       res.redirect(`/events/${req.params.id}`);
     }
   },
+  
 
   // Delete event
   deleteEvent: async (req, res) => {

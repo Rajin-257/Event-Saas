@@ -7,6 +7,8 @@ const { upload, handleUploadError } = require('../middleware/upload');
 
 // Manage ticket types for an event
 router.get('/events/:id/tickets', ensureEventOwner, ticketController.getManageTicketTypes);
+
+router.get('/events/:id/attendees', ensureEventOwner, ticketController.getEventAttendees);
  
 // Add ticket type
 router.post('/events/:id/ticketss', [
