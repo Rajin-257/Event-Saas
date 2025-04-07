@@ -449,7 +449,6 @@
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                                 <form action="" method="POST" id="deleteTicketForm">
-                                    <input type="hidden" name="_method" value="DELETE">
                                     <button type="submit" class="btn btn-danger">
                                         <i class="ri-delete-bin-line me-1"></i> Delete Ticket
                                     </button>
@@ -567,11 +566,10 @@
         
         // Edit ticket function
         function editTicket(ticketId) {
-            // In a real application, you would likely fetch the ticket details from the server
-            // For this example, we'll use a client-side approach with JavaScript
-            const tickets = `<%- JSON.stringify(ticketTypes || []) %>`;
+            // Parse the ticket data from the server-rendered JSON
+            const tickets = JSON.parse('<%- JSON.stringify(ticketTypes || []) %>');
             const ticket = tickets.find(t => t.id === ticketId);
-            
+                
             if (ticket) {
                 // Update form action
                 const form = document.getElementById('editTicketForm');
@@ -598,19 +596,26 @@
                 document.getElementById('editSaleStartDate').value = saleStartDate;
                 document.getElementById('editSaleEndDate').value = saleEndDate;
                 
-                // Initialize date pickers with values
-                document.getElementById('editSaleStartDate')._flatpickr.setDate(saleStartDate);
-                document.getElementById('editSaleEndDate')._flatpickr.setDate(saleEndDate);
+                // Update flatpickr instances with new values
+                if (document.getElementById('editSaleStartDate')._flatpickr) {
+                    document.getElementById('editSaleStartDate')._flatpickr.setDate(saleStartDate);
+                }
+                
+                if (document.getElementById('editSaleEndDate')._flatpickr) {
+                    document.getElementById('editSaleEndDate')._flatpickr.setDate(saleEndDate);
+                }
                 
                 // Set active status
                 document.getElementById('editIsActive').checked = ticket.isActive;
+            } else {
+                console.error('Ticket not found with ID:', ticketId);
             }
         }
-        
+
         // Set up delete ticket modal
         function setDeleteTicketId(ticketId, ticketName) {
             const form = document.getElementById('deleteTicketForm');
-            form.action = `/tickets/events/<%= event.id %>/tickets/${ticketId}`;
+            form.action = `/tickets/delete/<%= event.id %>/tickets/${ticketId}`;
             
             // Update confirmation message
             const message = document.getElementById('deleteTicketMessage');

@@ -75,14 +75,14 @@ const CheckIn = sequelize.define('CheckIn', {
 });
 
 // CheckIn Association
-CheckIn.belongsTo(Ticket, { foreignKey: 'ticketId' });
-Ticket.hasOne(CheckIn, { foreignKey: 'ticketId' });
+CheckIn.belongsTo(Ticket, { foreignKey: 'ticketId',onDelete:'CASCADE' });
+Ticket.hasOne(CheckIn, { foreignKey: 'ticketId',onDelete:'CASCADE' });
 
-CheckIn.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(CheckIn, { foreignKey: 'eventId' });
+CheckIn.belongsTo(Event, { foreignKey: 'eventId',onDelete:'CASCADE' });
+Event.hasMany(CheckIn, { foreignKey: 'eventId',onDelete:'CASCADE' });
 
-CheckIn.belongsTo(User, { as: 'attendee', foreignKey: 'attendeeId' });
-CheckIn.belongsTo(User, { as: 'staff', foreignKey: 'checkedInBy' });
+CheckIn.belongsTo(User, { as: 'attendee', foreignKey: 'attendeeId',onDelete:'CASCADE' });
+CheckIn.belongsTo(User, { as: 'staff', foreignKey: 'checkedInBy',onDelete:'CASCADE' });
 
 
 module.exports = CheckIn;

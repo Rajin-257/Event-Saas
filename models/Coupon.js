@@ -99,11 +99,11 @@ const CouponUsage = sequelize.define('CouponUsage', {
 });
 
 // Cupon Associations
-Coupon.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(Coupon, { foreignKey: 'eventId' });
+Coupon.belongsTo(Event, { foreignKey: 'eventId',onDelete:'CASCADE' });
+Event.hasMany(Coupon, { foreignKey: 'eventId',onDelete:'CASCADE' });
 
-Coupon.hasMany(CouponUsage, { foreignKey: 'couponId' });
-CouponUsage.belongsTo(Coupon, { foreignKey: 'couponId' });
+Coupon.hasMany(CouponUsage, { foreignKey: 'couponId',onDelete:'CASCADE' });
+CouponUsage.belongsTo(Coupon, { foreignKey: 'couponId',onDelete:'CASCADE' });
 
 
 

@@ -72,7 +72,7 @@ const Event = sequelize.define('Event', {
 });
 
 // Event Associations
-Event.belongsTo(User, { as: 'organizer', foreignKey: 'organizerId' });
+Event.belongsTo(User, { as: 'organizer', foreignKey: 'organizerId',onDelete:'CASCADE' });
 
 
 

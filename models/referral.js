@@ -99,12 +99,12 @@ const CommissionPayout = sequelize.define('CommissionPayout', {
 });
 
 // Referral Associations
-Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId' });
-Referral.belongsTo(User, { as: 'referredUser', foreignKey: 'referredUserId' });
-Referral.belongsTo(Ticket, { foreignKey: 'ticketId' });
+Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId',onDelete:'CASCADE' });
+Referral.belongsTo(User, { as: 'referredUser', foreignKey: 'referredUserId',onDelete:'CASCADE' });
+Referral.belongsTo(Ticket, { foreignKey: 'ticketId',onDelete:'CASCADE' });
 
-CommissionPayout.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(CommissionPayout, { foreignKey: 'userId' });
+CommissionPayout.belongsTo(User, { foreignKey: 'userId',onDelete:'CASCADE' });
+User.hasMany(CommissionPayout, { foreignKey: 'userId',onDelete:'CASCADE' });
 
 
 

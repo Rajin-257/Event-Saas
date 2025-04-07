@@ -59,8 +59,9 @@ const Speaker = sequelize.define('Speaker', {
 });
 
 // Speaker Associations
-Speaker.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(Speaker, { foreignKey: 'eventId' });
+Speaker.belongsTo(Event, { foreignKey: 'eventId',onDelete:'CASCADE' });
+Event.hasMany(Speaker, { foreignKey: 'eventId',onDelete:'CASCADE' });
+
 
 
 

@@ -29,7 +29,7 @@ router.post('/events/:id/tickets/:ticketTypeId', [
 ], ticketController.updateTicketType);
 
 // Delete ticket type
-router.delete('/events/:id/tickets/:ticketTypeId', ensureEventOwner, ticketController.deleteTicketType);
+router.post('/delete/:id/tickets/:ticketTypeId', ensureEventOwner, ticketController.deleteTicketType);
 
 // Book tickets (step 1)
 router.get('/events/:id/book', ensureAuthenticated, ticketController.getBookTickets);

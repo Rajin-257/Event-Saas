@@ -95,7 +95,7 @@ module.exports = {
       // Validation
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.render('events/edit-ticket', {
+        return res.render('events/tickets', {
           title: 'Edit Ticket Type',
           errors: errors.array(),
           ticketType: { id: ticketTypeId, ...req.body },
@@ -155,7 +155,7 @@ module.exports = {
       
       if (!ticketType || ticketType.eventId !== eventId) {
         req.flash('error_msg', 'Ticket type not found');
-        return res.redirect(`/events/${eventId}/tickets`);
+        return res.redirect(`/tickets/events/${eventId}/tickets`);
       }
 
       // Check if any tickets have been sold
@@ -163,18 +163,18 @@ module.exports = {
       
       if (ticketsSold > 0) {
         req.flash('error_msg', 'Cannot delete ticket type with sold tickets');
-        return res.redirect(`/events/${eventId}/tickets`);
+        return res.redirect(`/tickets/events/${eventId}/tickets`);
       }
 
       // Delete ticket type
       await ticketType.destroy();
 
       req.flash('success_msg', 'Ticket type deleted successfully');
-      res.redirect(`/events/${eventId}/tickets`);
+      res.redirect(`/tickets/events/${eventId}/tickets`);
     } catch (err) {
       console.error('Error deleting ticket type:', err);
       req.flash('error_msg', 'Error deleting ticket type');
-      res.redirect(`/events/${req.params.id}/tickets`);
+      res.redirect(`/tickets/events/${req.params.id}/tickets`);
     }
   },
 

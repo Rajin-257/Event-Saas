@@ -144,19 +144,19 @@ const Ticket = sequelize.define('Ticket', {
 });
 
 // Tickets Associations
-TicketType.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(TicketType, { foreignKey: 'eventId' });
+TicketType.belongsTo(Event, { foreignKey: 'eventId',onDelete:'CASCADE' });
+Event.hasMany(TicketType, { foreignKey: 'eventId',onDelete:'CASCADE' });
 
-Ticket.belongsTo(TicketType, { foreignKey: 'ticketTypeId' });
-TicketType.hasMany(Ticket, { foreignKey: 'ticketTypeId' });
+Ticket.belongsTo(TicketType, { foreignKey: 'ticketTypeId',onDelete:'CASCADE' });
+TicketType.hasMany(Ticket, { foreignKey: 'ticketTypeId',onDelete:'CASCADE' });
 
-Ticket.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(Ticket, { foreignKey: 'eventId' });
+Ticket.belongsTo(Event, { foreignKey: 'eventId',onDelete:'CASCADE' });
+Event.hasMany(Ticket, { foreignKey: 'eventId',onDelete:'CASCADE' });
 
-Ticket.belongsTo(User, { as: 'attendee', foreignKey: 'userId' });
-User.hasMany(Ticket, { foreignKey: 'userId' });
+Ticket.belongsTo(User, { as: 'attendee', foreignKey: 'userId',onDelete:'CASCADE' });
+User.hasMany(Ticket, { foreignKey: 'userId',onDelete:'CASCADE' });
 
-Ticket.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId' });
+Ticket.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId',onDelete:'CASCADE' });
 
 
 module.exports = { Ticket, TicketType };

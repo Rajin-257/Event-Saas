@@ -69,11 +69,11 @@ const Payment = sequelize.define('Payment', {
 });
 
 // Payment Associations
-Payment.belongsTo(Ticket, { foreignKey: 'ticketId' });
-Ticket.hasOne(Payment, { foreignKey: 'ticketId' });
+Payment.belongsTo(Ticket, { foreignKey: 'ticketId',onDelete:'CASCADE' });
+Ticket.hasOne(Payment, { foreignKey: 'ticketId',onDelete:'CASCADE' });
 
-Payment.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Payment, { foreignKey: 'userId' });
+Payment.belongsTo(User, { foreignKey: 'userId',onDelete:'CASCADE' });
+User.hasMany(Payment, { foreignKey: 'userId',onDelete:'CASCADE' });
 
 
 

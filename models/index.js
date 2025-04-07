@@ -5,7 +5,7 @@ const { Ticket, TicketType } = require('./Ticket');
 const CheckIn = require('./CheckIn');
 const { Coupon, CouponUsage } = require('./Coupon');
 const Payment = require('./Payment');
-const { Referral, CommissionPayout } = require('./Referral');
+const { Referral, CommissionPayout } = require('./referral');
 const Speaker = require('./Speaker');
 
 // ...association code...

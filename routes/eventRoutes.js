@@ -74,7 +74,7 @@ router.post('/:id/speakers/:speakerId', [
 ], eventController.updateSpeaker);
 
 // Delete speaker
-router.post('delete/:id/speakers/:speakerId', ensureEventOwner, eventController.deleteSpeaker);
+router.post('/delete/:id/speakers/:speakerId', ensureEventOwner, eventController.deleteSpeaker);
 
 // Management of ticket types is handled by the ticketController and ticketRoutes
 
