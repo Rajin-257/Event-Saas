@@ -1,103 +1,67 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const createError = require('http-errors');
-const morgan = require('morgan');
-const helmet = require('helmet');
-const compression = require('compression');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const flash = require('connect-flash');
 const passport = require('passport');
-const rateLimit = require('express-rate-limit');
+const methodOverride = require('method-override');
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
-const eventRoutes = require('./routes/eventRoutes');
-const ticketRoutes = require('./routes/ticketRoutes');
-const userRoutes = require('./routes/userRoutes');
-const venueRoutes = require('./routes/venueRoutes');
-const guestRoutes = require('./routes/guestRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const eventGuestRoutes = require('./routes/eventGuestRoutes');
-require('dotenv').config();
-
-// Error handler middleware
-const errorHandler = require('./middlewares/errorHandler');
-const logger = require('./utils/logger');
-
-// Initialize Express app
+// Initialize Express
 const app = express();
 
-// Set up passport configuration
+// Initialize all models and their associations
+const initializeModels = async () => {
+  // Import models
+  const User = require('./models/User');
+  const Event = require('./models/Event');
+  const { Ticket, TicketType } = require('./models/Ticket');
+  const CheckIn = require('./models/CheckIn');
+  const { Coupon, CouponUsage } = require('./models/Coupon');
+  const Payment = require('./models/Payment');
+  const { Referral, CommissionPayout } = require('./models/Referral');
+  const Speaker = require('./models/Speaker');
+  
+  // Get DB instance
+  const sequelize = require('./config/db');
+  
+  // Sync database in development environment
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await sequelize.sync({ alter: false });
+      console.log('All database models synced successfully');
+    } catch (error) {
+      console.error('Error syncing database models:', error);
+      process.exit(1); // Exit if database sync fails
+    }
+  }
+  
+  return {
+    User, Event, Ticket, TicketType, CheckIn, Coupon, 
+    CouponUsage, Payment, Referral, CommissionPayout, Speaker
+  };
+};
+
+// Passport Config
 require('./config/passport')(passport);
 
-// View engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+// Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(methodOverride('_method'));
 
-// Global middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
-
-app.use((req, res, next) => {
-  res.locals.APP_URL = process.env.APP_URL;
-  next();
-});
-
-// Set security HTTP headers
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'cdnjs.cloudflare.com'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
-        fontSrc: ["'self'", 'fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:'],
-      },
-    },
-  })
-);
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes',
-});
-app.use('/api', limiter);
-
-// Enable CORS
-app.use(cors());
-
-// Body parser, reading data from body into req.body
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(cookieParser());
-
-// Compression middleware
-app.use(compression());
-
-// Serve static files
+// Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Express session
-// Express session
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'your_very_secure_session_secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'development' && process.env.HTTPS === 'true',
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-    }
-  })
-);
+// EJS
+app.set('view engine', 'ejs');
+
+// Express Session
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 day
+}));
 
 // Passport middleware
 app.use(passport.initialize());
@@ -111,28 +75,43 @@ app.use((req, res, next) => {
   res.locals.success_msg = req.flash('success_msg');
   res.locals.error_msg = req.flash('error_msg');
   res.locals.error = req.flash('error');
-  res.locals.messages = req.flash();
   res.locals.user = req.user || null;
   next();
 });
 
-// Routes
-app.use('/', authRoutes);
-app.use('/events', eventRoutes);
-app.use('/tickets', ticketRoutes);
-app.use('/users', userRoutes);
-app.use('/venues', venueRoutes);
-app.use('/guests', guestRoutes);
-app.use('/payments', paymentRoutes);
-app.use('/admin', adminRoutes);
-app.use('/eventguest', eventGuestRoutes);
+// Initialize models and start server
+const startServer = async () => {
+  // Initialize and sync models
+  await initializeModels();
+  
+  // Routes
+  app.use('/', require('./routes/authRoutes'));
+  app.use('/events', require('./routes/eventRoutes'));
+  app.use('/tickets', require('./routes/ticketRoutes'));
+  app.use('/users', require('./routes/userRoutes'));
+  app.use('/payments', require('./routes/paymentRoutes'));
+  app.use('/reports', require('./routes/reportRoutes'));
+  
+  // 404 handler
+  app.use((req, res) => {
+    res.status(404).render('errors/404', { title: 'Page Not Found' });
+  });
+  
+  // Error handler
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).render('errors/500', { title: 'Server Error' });
+  });
+  
+  // Start server
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
 
-// 404 handler
-app.use((req, res, next) => {
-  next(createError(404, 'Page not found'));
+// Start the application
+startServer().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
-
-// Error handler
-app.use(errorHandler);
-
-module.exports = app;

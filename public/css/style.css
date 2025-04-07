@@ -1,208 +1,255 @@
-/* Main Styles for Event Management System */
+/* Custom Styles for Event Management System */
 
-/* General Styles */
+/* Global Styles */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
   
-  /* Sidebar Styles */
-  .sidebar {
-    min-height: calc(100vh - 56px);
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  main {
+    flex: 1;
   }
   
-  /* Dashboard Cards */
-  .dashboard-card {
-    transition: transform 0.3s, box-shadow 0.3s;
-    border-left: 5px solid;
+  /* Navigation */
+  .navbar-brand {
+    font-weight: 600;
   }
   
-  .dashboard-card:hover {
+  /* Hero Section */
+  .hero {
+    background: linear-gradient(rgba(0, 123, 255, 0.1), rgba(0, 123, 255, 0.05));
+    padding: 80px 0;
+  }
+  
+  /* Event Cards */
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   }
   
-  .dashboard-card-events { border-left-color: #007bff; }
-  .dashboard-card-tickets { border-left-color: #28a745; }
-  .dashboard-card-guests { border-left-color: #fd7e14; }
-  .dashboard-card-venues { border-left-color: #6f42c1; }
-  
-  /* Auth Pages */
-  .auth-card {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    border-radius: 0.5rem;
-    border: none;
-  }
-  
-  /* Event Cards */
-  .event-card {
-    transition: transform 0.3s;
-    border: none;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  }
-  
-  .event-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  }
-  
-  .event-banner {
+  .card-img-top {
     height: 200px;
     object-fit: cover;
-    width: 100%;
   }
   
-  .event-date-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.8rem;
+  /* Dashboard */
+  .dashboard-card {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   
-  /* Ticket Styles */
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stat-card {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .stat-card .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #0d6efd;
+  }
+  
+  .stat-card .stat-label {
+    font-size: 1rem;
+    color: #6c757d;
+  }
+  
+  /* Ticket styles */
   .ticket-card {
-    border: none;
-    border-radius: 0.5rem;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 20px;
+    position: relative;
   }
   
   .ticket-header {
-    background-color: #007bff;
-    color: white;
+    background-color: #f8f9fa;
     padding: 15px;
-    position: relative;
+    border-bottom: 1px solid #dee2e6;
   }
   
-  .ticket-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 20px;
-    background-image: radial-gradient(circle at 10px 0, transparent 10px, white 10px);
-    background-size: 20px 20px;
-    background-position: center bottom;
-    background-repeat: repeat-x;
+  .ticket-body {
+    padding: 15px;
+  }
+  
+  .ticket-footer {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-top: 1px solid #dee2e6;
   }
   
   .ticket-qr {
-    width: 150px;
-    height: 150px;
-    margin: 20px auto;
+    text-align: center;
+    padding: 20px;
   }
   
-  .ticket-info {
-    margin-bottom: 20px;
-  }
-  
-  .ticket-info-label {
-    font-weight: 600;
-    color: #6c757d;
-    margin-bottom: 5px;
-  }
-  
-  .ticket-status-pending { background-color: #ffc107; }
-  .ticket-status-confirmed { background-color: #28a745; }
-  .ticket-status-cancelled { background-color: #dc3545; }
-  .ticket-status-used { background-color: #6c757d; }
-  
-  /* Custom Helper Classes */
-  .bg-purple { background-color: #6f42c1 !important; }
-  .text-purple { color: #6f42c1 !important; }
-  .text-orange { color: #fd7e14 !important; }
-  
-  /* Camera Scan Area */
-  .scan-area {
-    position: relative;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-    overflow: hidden;
-    border: 2px solid #007bff;
-    border-radius: 10px;
-  }
-  
-  .scan-area video {
-    width: 100%;
+  .ticket-qr img {
+    max-width: 200px;
     height: auto;
   }
   
-  .scan-overlay {
+  .ticket-status {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2px dashed #fff;
-    border-radius: 8px;
-    margin: 10px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
   }
   
-  .scan-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: rgba(0, 123, 255, 0.8);
-    top: 50%;
-    animation: scan 2s linear infinite;
+  .status-confirmed {
+    background-color: #28a745;
   }
   
-  @keyframes scan {
-    0% { top: 10%; }
-    50% { top: 90%; }
-    100% { top: 10%; }
+  .status-pending {
+    background-color: #ffc107;
   }
   
-  /* Media Queries */
-  @media (max-width: 992px) {
-    .sidebar {
-      position: relative;
-      min-height: auto;
-    }
+  .status-cancelled {
+    background-color: #dc3545;
   }
   
-  @media (max-width: 576px) {
-    .event-banner {
-      height: 150px;
-    }
+  .status-used {
+    background-color: #6c757d;
   }
   
-  /* Print Styles for Tickets */
-  @media print {
-    body {
-      background-color: white;
+  /* Payment and Invoice */
+  .invoice-container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 30px;
+    margin-bottom: 30px;
+  }
+  
+  .invoice-header {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .invoice-details {
+    margin-bottom: 30px;
+  }
+  
+  .invoice-total {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 20px;
+    text-align: right;
+  }
+  
+  /* Check-in page */
+  .check-in-container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 30px;
+    margin-bottom: 30px;
+  }
+  
+  .qr-reader {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .qr-scanner-overlay {
+    border: 2px solid #0d6efd;
+    border-radius: 10px;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Reports */
+  .chart-container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .report-filter {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* Forms */
+  .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* Coupon styles */
+  .coupon-card {
+    border: 2px dashed #0d6efd;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: rgba(13, 110, 253, 0.05);
+  }
+  
+  .coupon-code {
+    font-family: monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #0d6efd;
+    padding: 5px 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    display: inline-block;
+  }
+  
+  /* Speaker styles */
+  .speaker-card {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  .speaker-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 5px solid #f8f9fa;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .hero {
+      padding: 50px 0;
     }
     
-    .container {
-      width: 100%;
-      max-width: 100%;
+    .stat-card .stat-value {
+      font-size: 2rem;
     }
     
-    header, 
-    footer, 
-    .sidebar, 
-    .navbar, 
-    .no-print {
-      display: none !important;
-    }
-    
-    .ticket-card {
-      box-shadow: none;
-      border: 1px solid #ddd;
-    }
-    
-    .ticket-qr {
-      page-break-inside: avoid;
+    .invoice-container {
+      padding: 15px;
     }
   }

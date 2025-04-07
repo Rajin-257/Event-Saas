@@ -1,64 +1,82 @@
-<%- include('../partials/html.ejs') %>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <%- include("../partials/title-meta.ejs", {title: "Log In"}) %>
-    <%- include('../partials/head-css.ejs') %>
+    <meta charset="utf-8" />
+    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
+    <meta content="Coderthemes" name="author" />
+
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="/assets/images/favicon.ico">
+
+    <!-- Theme Config Js -->
+    <script src="/assets/js/config.js"></script>
+
+    <!-- Vendor css -->
+    <link href="/assets/css/vendor.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- App css -->
+    <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-style" />
+
+    <!-- Icons css -->
+    <link href="/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
 </head>
 
-<body class="">
-    <div class="account-pages my-5 pt-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8 col-lg-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="text-center mb-4 mt-3">
-                                <a href="index.html" class="logo p-0 lh-base">
-                                    <span class="logo-dark"><img src="/admin/images/logo-dark.png" alt="" height="30"></span>
-                                    <span class="logo-light"><img src="/admin/images/logo-light.png" alt="" height="30"></span>
-                                </a>
-                            </div>
-                            <%- include('../partials/alert.ejs') %>
-                            <form action="/login" method="POST" class="p-2">
-                                <div class="form-group">
-                                    <label for="email">Email address</label>
-                                    <input class="form-control" type="email" id="email" name="email" required="" placeholder="Enter your email">
-                                </div>
-                                <div class="form-group">
-                                    <a href="/forgot-password" class="text-muted float-end">Forgot your password?</a>
-                                    <label for="password">Password</label>
-                                    <input class="form-control" type="password" required="" id="password" name="password" placeholder="Enter your password">
-                                </div>
-                                
-                                <div class="form-group mb-4 pb-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="checkbox-signin">
-                                        <label class="form-check-label" for="checkbox-signin">Remember me</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3 text-center">
-                                    <button class="btn btn-primary w-100" type="submit"> Sign In </button>
-                                </div>
-                            </form>
+<body>
+
+    <div class="auth-bg d-flex min-vh-100 justify-content-center align-items-center">
+        <div class="row g-0 justify-content-center w-100 m-xxl-5 px-xxl-4 m-3">
+            <div class="col-xl-4 col-lg-5 col-md-6">
+                <div class="card overflow-hidden text-center h-100 p-xxl-4 p-3 mb-0">
+                    <a href="/" class="auth-brand mb-3">
+                        <img src="/assets/images/logo-dark.png" alt="dark logo" height="30" class="logo-dark">
+                        <img src="/assets/images/logo.png" alt="logo light" height="30" class="logo-light">
+                    </a>
+
+                    <h4 class="fw-semibold mb-2">Login your account</h4>
+
+                    <%- include('../partials/messages') %>
+
+                    <form action="/login" method="POST" class="text-start mb-3">
+                        <div class="mb-3">
+                            <label class="form-label" for="email">Email</label>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email">
                         </div>
-                        <!-- end card-body -->
-                    </div>
-                    <!-- end card -->
-                    <div class="row mt-4">
-                        <div class="col-sm-12 text-center">
-                            <p class="text-muted mb-0">Don't have an account? <a href="/register" class="text-dark ms-1"><b>Sign Up</b></a></p>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="password">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password">
                         </div>
-                    </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                             <label class="form-check-label" for="checkbox-signin">Uhmm! You Forgot Hah.</label>
+
+                            <a href="/password-reset" class="text-muted border-bottom border-dashed">Forget Password</a>
+                        </div>
+
+                        <div class="d-grid">
+                            <button class="btn btn-primary" type="submit">Login</button>
+                        </div>
+                    </form>
+
+                    <p class="text-danger fs-14 mb-4">Don't have an account? <a href="/register" class="fw-semibold text-dark ms-1">Sign Up !</a></p>
+
+                    <p class="mt-auto mb-0">
+                        <script>document.write(new Date().getFullYear())</script> © Boron - By <span class="fw-bold text-decoration-underline text-uppercase text-reset fs-12">Coderthemes</span>
+                    </p>
                 </div>
-                <!-- end col -->
             </div>
-            <!-- end row -->
         </div>
-        <!-- end container -->
     </div>
-    <!-- end page -->
-    
-    <%- include('../partials/footer-scripts.ejs') %>
+
+    <!-- Vendor js -->
+    <script src="/assets/js/vendor.min.js"></script>
+
+    <!-- App js -->
+    <script src="/assets/js/app.js"></script>
+
 </body>
 
 </html>

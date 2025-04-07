@@ -1,132 +1,81 @@
-/**
- * Event Routes
- */
 const express = require('express');
 const router = express.Router();
+const { check } = require('express-validator');
 const eventController = require('../controllers/eventController');
-const { ensureAuthenticated, ensureRole } = require('../middlewares/auth');
-const validators = require('../utils/validators');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const { ensureAuthenticated, ensureOrganizer, ensureEventOwner } = require('../middleware/auth');
+const { upload, handleUploadError } = require('../middleware/upload');
 
-// Ensure upload directory exists
-const eventUploadDir = 'public/uploads/events';
-if (!fs.existsSync(eventUploadDir)){
-  fs.mkdirSync(eventUploadDir, { recursive: true });
-}
+// Get all events
+router.get('/', eventController.getAllEvents);
 
-// Configure multer for event banner uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, eventUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    const ext = file.originalname.split('.').pop();
-    cb(null, `event-${uniqueSuffix}.${ext}`);
-  }
-});
+// Get event details
+router.get('/:id', eventController.getEventById);
 
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
+// Create event form
+router.get('/create/e', ensureOrganizer, eventController.getCreateEvent);
 
-// API Routes
-// Public routes
-router.get('/api',   eventController.getAllEvents);
-router.get('/api/:id', eventController.getEventById);
+// Create event submit
+router.post('/create', [
+  ensureOrganizer,
+  upload.single('eventBanner'),
+  handleUploadError,
+  check('title', 'Title is required').notEmpty(),
+  check('description', 'Description is required').notEmpty(),
+  check('category', 'Category is required').notEmpty(),
+  check('startDate', 'Start date is required').notEmpty(),
+  check('endDate', 'End date is required').notEmpty(),
+  check('venue', 'Venue is required').notEmpty(),
+  check('venueAddress', 'Venue address is required').notEmpty()
+], eventController.createEvent);
 
-// Protected routes
-router.post('/api', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('banner_image'), validators.createEventRules,  eventController.createEvent);
-router.put('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), upload.single('banner_image'), eventController.updateEvent);
-router.delete('/api/:id', ensureAuthenticated, ensureRole(['admin', 'organizer']), eventController.deleteEvent);
+// Edit event form
+router.get('/:id/edit', ensureEventOwner, eventController.getEditEvent);
 
-// Event guests
-router.get('/api/:id/guests', ensureAuthenticated, eventController.getEventGuests);
-router.post('/api/:id/guests', ensureAuthenticated, ensureRole(['admin', 'organizer']), eventController.addEventGuest);
-router.delete('/api/:id/guests/:guest_id', ensureAuthenticated, ensureRole(['admin', 'organizer']), eventController.removeEventGuest);
+// Update event
+router.post('/:id/edit', [
+  ensureEventOwner,
+  upload.single('eventBanner'),
+  handleUploadError,
+  check('title', 'Title is required').notEmpty(),
+  check('description', 'Description is required').notEmpty(),
+  check('category', 'Category is required').notEmpty(),
+  check('startDate', 'Start date is required').notEmpty(),
+  check('endDate', 'End date is required').notEmpty(),
+  check('venue', 'Venue is required').notEmpty(),
+  check('venueAddress', 'Venue address is required').notEmpty()
+], eventController.updateEvent);
 
-// Event statistics
-router.get('/api/:id/stats', ensureAuthenticated, ensureRole(['admin', 'organizer']), eventController.getEventStats);
+// Delete event
+router.delete('/:id', ensureEventOwner, eventController.deleteEvent);
 
-// Web Routes
-router.get('/', eventController.renderEventsPage);
-router.get('/:id', eventController.renderEventDetailsPage);
+// Publish/unpublish event
+router.post('/:id/publish', ensureEventOwner, eventController.togglePublishEvent);
 
-// Event management (Admin/Organizer)
-router.get('/manage/create', ensureAuthenticated, ensureRole(['admin', 'organizer']), (req, res) => {
-  res.render('events/create', { title: 'Create Event' });
-});
+// Manage speakers
+router.get('/:id/speakers', ensureEventOwner, eventController.getManageSpeakers);
 
-router.get('/manage/:id/edit', ensureAuthenticated, ensureRole(['admin', 'organizer']), async (req, res) => {
-  try {
-    const event = await db.Event.findByPk(req.params.id, {
-      include: [{ model: db.Venue }]
-    });
-    
-    if (!event) {
-      req.flash('error_msg', 'Event not found');
-      return res.redirect('/events');
-    }
-    
-    // Check if user is authorized (creator or admin)
-    const isAdmin = req.user.Roles.some(role => role.name === 'admin');
-    if (event.created_by !== req.user.id && !isAdmin) {
-      req.flash('error_msg', 'Not authorized to edit this event');
-      return res.redirect('/events');
-    }
-    
-    // Get venues for dropdown
-    const venues = await db.Venue.findAll();
-    
-    res.render('events/edit', { 
-      title: 'Edit Event',
-      event,
-      venues
-    });
-  } catch (error) {
-    req.flash('error_msg', 'Error loading event');
-    res.redirect('/events');
-  }
-});
 
-router.get('/manage/:id/tickets', ensureAuthenticated, ensureRole(['admin', 'organizer']), async (req, res) => {
-  try {
-    const event = await db.Event.findByPk(req.params.id, {
-      include: [{ model: db.TicketType }]
-    });
-    
-    if (!event) {
-      req.flash('error_msg', 'Event not found');
-      return res.redirect('/events');
-    }
-    
-    // Check if user is authorized (creator or admin)
-    const isAdmin = req.user.Roles.some(role => role.name === 'admin');
-    if (event.created_by !== req.user.id && !isAdmin) {
-      req.flash('error_msg', 'Not authorized to manage tickets for this event');
-      return res.redirect('/events');
-    }
-    
-    res.render('events/tickets', { 
-      title: 'Manage Tickets',
-      event
-    });
-  } catch (error) {
-    req.flash('error_msg', 'Error loading event tickets');
-    res.redirect('/events');
-  }
-});
+// Add speaker
+router.post('/:id/speakers', [
+  ensureEventOwner,
+  upload.single('speakerPhoto'),
+  handleUploadError,
+  check('name', 'Speaker name is required').notEmpty(),
+  check('speakerType', 'Speaker type is required').notEmpty()
+], eventController.addSpeaker);
+
+// Edit speaker
+router.post('/:id/speakers/:speakerId', [
+  ensureEventOwner,
+  upload.single('speakerPhoto'),
+  handleUploadError,
+  check('name', 'Speaker name is required').notEmpty(),
+  check('speakerType', 'Speaker type is required').notEmpty()
+], eventController.updateSpeaker);
+
+// Delete speaker
+router.post('delete/:id/speakers/:speakerId', ensureEventOwner, eventController.deleteSpeaker);
+
+// Management of ticket types is handled by the ticketController and ticketRoutes
 
 module.exports = router;

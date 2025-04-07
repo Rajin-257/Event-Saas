@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/title-meta', { title: title }) %>
+    <%- include('../partials/head-css') %>
+    
+    <!-- Flatpickr date-time picker CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    
+    <style>
+        .form-section {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .section-title {
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+        
+        .required-label::after {
+            content: " *";
+            color: #ff5b5b;
+        }
+        
+        .ticket-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .ticket-card:hover {
+            border-color: #696cff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+        }
+        
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .ticket-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+        }
+        
+        .ticket-price {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #566a7f;
+        }
+        
+        .ticket-availability {
+            display: flex;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        
+        .progress {
+            height: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .ticket-sale-dates {
+            font-size: 0.875rem;
+            color: #697a8d;
+            margin-top: 1rem;
+        }
+        
+        .btn-xs {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Begin page -->
+    <div class="wrapper">
+        <%- include('../partials/menu') %>
+        
+        <!-- ============================================================== -->
+        <!-- Start Page Content here -->
+        <!-- ============================================================== -->
+        <div class="page-content">
+            <div class="page-container">
+                <!-- Page title -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="page-title-box">
+                            <div class="page-title-right">
+                                <ol class="breadcrumb m-0">
+                                    <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                                    <li class="breadcrumb-item"><a href="/events">Events</a></li>
+                                    <li class="breadcrumb-item"><a href="/events/<%= event.id %>/edit">Edit Event</a></li>
+                                    <li class="breadcrumb-item active">Manage Tickets</li>
+                                </ol>
+                            </div>
+                            <h4 class="page-title">Manage Tickets: <%= event.title %></h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash messages -->
+                <%- include('../partials/messages') %>
+                
+                <!-- Event Status and Controls -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="ri-information-line me-2"></i>
+                                            <strong>Event ID:</strong>
+                                            <span class="badge bg-light text-dark ms-2"><%= event.id %></span>
+                                        </div>
+                                        
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="ri-calendar-check-line me-2"></i>
+                                            <strong>Event Dates:</strong>
+                                            <span class="ms-2">
+                                                <%= new Date(event.startDate).toLocaleString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric', 
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                }) %> to 
+                                                <%= new Date(event.endDate).toLocaleString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric', 
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                }) %>
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="d-flex align-items-center">
+                                            <i class="ri-map-pin-line me-2"></i>
+                                            <strong>Venue:</strong>
+                                            <span class="ms-2"><%= event.venue %></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                                        <div class="btn-group">
+                                            <a href="/events/<%= event.id %>" class="btn btn-outline-primary me-2">
+                                                <i class="ri-eye-line me-1"></i> View Event
+                                            </a>
+                                            <a href="/events/<%= event.id %>/edit" class="btn btn-outline-secondary">
+                                                <i class="ri-arrow-left-line me-1"></i> Back to Edit
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Event Management Tabs -->
+                <ul class="nav nav-tabs nav-bordered" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/events/<%= event.id %>/edit">
+                            <i class="ri-edit-box-line me-1"></i> Edit Details
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/events/<%= event.id %>/speakers">
+                            <i class="ri-user-voice-line me-1"></i> Manage Speakers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/events/<%= event.id %>/tickets">
+                            <i class="ri-ticket-2-line me-1"></i> Manage Tickets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/registrations/<%= event.id %>">
+                            <i class="ri-group-line me-1"></i> Attendees
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Ticket Management Section -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <h4 class="header-title">
+                                            <i class="ri-ticket-2-line me-1"></i> Ticket Types
+                                        </h4>
+                                        <p class="text-muted">
+                                            Create and manage ticket types for your event. 
+                                            Set prices, availability, and sale periods.
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6 text-md-end">
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTicketModal">
+                                            <i class="ri-add-line me-1"></i> Add New Ticket Type
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <% if (event.TicketTypes && event.TicketTypes.length > 0) { %>
+                                    <!-- Existing Ticket Types -->
+                                    <div class="row">
+                                        <% event.TicketTypes.forEach(ticket => { %>
+                                            <div class="col-md-6">
+                                                <div class="ticket-card">
+                                                    <div class="ticket-header">
+                                                        <h5 class="mb-0"><%= ticket.name %></h5>
+                                                        <span class="ticket-badge <%= ticket.isActive ? 'bg-success' : 'bg-secondary' %>">
+                                                            <%= ticket.isActive ? 'Active' : 'Inactive' %>
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div class="text-muted"><%= ticket.description %></div>
+                                                    
+                                                    <div class="ticket-price mt-3">
+                                                        <%= ticket.price > 0 ? `$${parseFloat(ticket.price).toFixed(2)}` : 'Free' %>
+                                                    </div>
+                                                    
+                                                    <div class="ticket-availability">
+                                                        <div class="w-100">
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <small><%= ticket.availableQuantity %> remaining</small>
+                                                                <small><%= ticket.quantity %> total</small>
+                                                            </div>
+                                                            <div class="progress">
+                                                                <% const soldPercentage = ((ticket.quantity - ticket.availableQuantity) / ticket.quantity) * 100; %>
+                                                                <div class="progress-bar bg-primary" role="progressbar"
+                                                                    aria-valuenow="<%= soldPercentage %>" 
+                                                                    aria-valuemin="0" 
+                                                                    aria-valuemax="100">
+                                                                </div>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between">
+                                                                <small><%= ticket.quantity - ticket.availableQuantity %> sold</small>
+                                                                <small><%= soldPercentage.toFixed(1) %>%</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="ticket-sale-dates">
+                                                        <i class="ri-calendar-line me-1"></i>
+                                                        Sale period: 
+                                                        <%= new Date(ticket.saleStartDate).toLocaleDateString() %> to 
+                                                        <%= new Date(ticket.saleEndDate).toLocaleDateString() %>
+                                                    </div>
+                                                    
+                                                    <div class="mt-3 d-flex justify-content-end">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary me-2" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#editTicketModal<%= ticket.id %>">
+                                                            <i class="ri-edit-line me-1"></i> Edit
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#deleteTicketModal<%= ticket.id %>">
+                                                            <i class="ri-delete-bin-line me-1"></i> Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Edit Ticket Modal -->
+                                                <div class="modal fade" id="editTicketModal<%= ticket.id %>" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-lg">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Edit Ticket Type</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form action="/events/<%= event.id %>/tickets/<%= ticket.id %>" method="POST">
+                                                                <div class="modal-body">
+                                                                    <div class="row g-3">
+                                                                        <div class="col-lg-6">
+                                                                            <label for="name" class="form-label required-label">Ticket Name</label>
+                                                                            <input type="text" class="form-control" id="name" name="name" 
+                                                                                   placeholder="e.g., VIP, General Admission" 
+                                                                                   value="<%= ticket.name %>" required>
+                                                                        </div>
+                                                                        <div class="col-lg-6">
+                                                                            <label for="type" class="form-label">Ticket Type</label>
+                                                                            <select class="form-select" id="type" name="type">
+                                                                                <option value="general" <%= ticket.type === 'general' ? 'selected' : '' %>>General</option>
+                                                                                <option value="vip" <%= ticket.type === 'vip' ? 'selected' : '' %>>VIP</option>
+                                                                                <option value="premium" <%= ticket.type === 'premium' ? 'selected' : '' %>>Premium</option>
+                                                                                <option value="early_bird" <%= ticket.type === 'early_bird' ? 'selected' : '' %>>Early Bird</option>
+                                                                                <option value="other" <%= ticket.type === 'other' ? 'selected' : '' %>>Other</option>
+                                                                            </select>
+                                                                        </div>
+                                                                        <div class="col-lg-12">
+                                                                            <label for="description" class="form-label">Description</label>
+                                                                            <textarea class="form-control" id="description" name="description" 
+                                                                                      rows="3" placeholder="Describe what this ticket includes"><%= ticket.description %></textarea>
+                                                                        </div>
+                                                                        <div class="col-lg-6">
+                                                                            <label for="price" class="form-label required-label">Price</label>
+                                                                            <div class="input-group">
+                                                                                <span class="input-group-text">$</span>
+                                                                                <input type="number" class="form-control" id="price" name="price" 
+                                                                                       min="0" step="0.01" value="<%= parseFloat(ticket.price).toFixed(2) %>" required>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-lg-6">
+                                                                            <label for="quantity" class="form-label required-label">Quantity</label>
+                                                                            <input type="number" class="form-control" id="quantity" name="quantity" 
+                                                                                   min="<%= ticket.quantity - ticket.availableQuantity %>" 
+                                                                                   value="<%= ticket.quantity %>" required>
+                                                                            <div class="form-text">
+                                                                                <%= ticket.quantity - ticket.availableQuantity %> tickets already sold
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-lg-6">
+                                                                            <label for="saleStartDate" class="form-label required-label">Sale Start Date</label>
+                                                                            <div class="input-group">
+                                                                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                                                                <input type="text" class="form-control datepicker" id="saleStartDate" name="saleStartDate" 
+                                                                                       value="<%= new Date(ticket.saleStartDate).toISOString().slice(0, 16).replace('T', ' ') %>" required>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-lg-6">
+                                                                            <label for="saleEndDate" class="form-label required-label">Sale End Date</label>
+                                                                            <div class="input-group">
+                                                                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                                                                <input type="text" class="form-control datepicker" id="saleEndDate" name="saleEndDate" 
+                                                                                       value="<%= new Date(ticket.saleEndDate).toISOString().slice(0, 16).replace('T', ' ') %>" required>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-lg-6">
+                                                                            <label for="isActive" class="form-label">Status</label>
+                                                                            <select class="form-select" id="isActive" name="isActive">
+                                                                                <option value="true" <%= ticket.isActive ? 'selected' : '' %>>Active</option>
+                                                                                <option value="false" <%= !ticket.isActive ? 'selected' : '' %>>Inactive</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Delete Ticket Modal -->
+                                                <div class="modal fade" id="deleteTicketModal<%= ticket.id %>" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Delete Ticket Type</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <div class="text-center mb-4">
+                                                                    <i class="ri-alert-line text-danger" style="font-size: 3rem;"></i>
+                                                                    <h4 class="mt-2">Are you sure?</h4>
+                                                                    <p class="text-muted">
+                                                                        Do you really want to delete the "<%= ticket.name %>" ticket type? 
+                                                                        This action cannot be undone.
+                                                                    </p>
+                                                                </div>
+                                                                
+                                                                <% if (ticket.quantity - ticket.availableQuantity > 0) { %>
+                                                                    <div class="alert alert-warning">
+                                                                        <i class="ri-information-line me-2"></i>
+                                                                        <strong>Warning:</strong> 
+                                                                        <%= ticket.quantity - ticket.availableQuantity %> tickets of this type have already been sold.
+                                                                        Deleting this ticket type will affect existing purchases.
+                                                                    </div>
+                                                                <% } %>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                                <form action="/events/<%= event.id %>/tickets/<%= ticket.id %>?_method=DELETE" method="POST">
+                                                                    <button type="submit" class="btn btn-danger">
+                                                                        <i class="ri-delete-bin-line me-1"></i> Delete Ticket
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <!-- No Tickets View -->
+                                    <div class="text-center py-5">
+                                        <div class="mb-4">
+                                            <i class="ri-ticket-2-line" style="font-size: 4rem; color: #d0d0d0;"></i>
+                                        </div>
+                                        <h4>No Ticket Types Created Yet</h4>
+                                        <p class="text-muted">
+                                            Create ticket types to start selling tickets for your event.
+                                            <br>You must have at least one ticket type to publish your event.
+                                        </p>
+                                        <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addTicketModal">
+                                            <i class="ri-add-line me-1"></i> Create First Ticket Type
+                                        </button>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ticket Sales Stats -->
+                <% if (event.TicketTypes && event.TicketTypes.length > 0) { %>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h4 class="header-title">Ticket Sales Summary</h4>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-md-3">
+                                            <div class="card border shadow-none">
+                                                <div class="card-body text-center">
+                                                    <h3 class="mb-1">
+                                                        <%= event.TicketTypes.reduce((total, ticket) => total + (ticket.quantity - ticket.availableQuantity), 0) %>
+                                                    </h3>
+                                                    <p class="text-muted mb-0">Total Tickets Sold</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <div class="card border shadow-none">
+                                                <div class="card-body text-center">
+                                                    <h3 class="mb-1">
+                                                        <%= event.TicketTypes.reduce((total, ticket) => total + ticket.availableQuantity, 0) %>
+                                                    </h3>
+                                                    <p class="text-muted mb-0">Tickets Available</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <div class="card border shadow-none">
+                                                <div class="card-body text-center">
+                                                    <h3 class="mb-1">
+                                                        <%= event.TicketTypes.reduce((total, ticket) => total + ticket.quantity, 0) %>
+                                                    </h3>
+                                                    <p class="text-muted mb-0">Total Capacity</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3">
+                                            <div class="card border shadow-none">
+                                                <div class="card-body text-center">
+                                                    <h3 class="mb-1">
+                                                        $<%= event.TicketTypes.reduce((total, ticket) => {
+                                                            return total + (parseFloat(ticket.price) * (ticket.quantity - ticket.availableQuantity));
+                                                        }, 0).toFixed(2) %>
+                                                    </h3>
+                                                    <p class="text-muted mb-0">Revenue Generated</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+                
+                <!-- Add Ticket Modal -->
+                <div class="modal fade" id="addTicketModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add New Ticket Type</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="/events/<%= event.id %>/tickets" method="POST">
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-lg-6">
+                                            <label for="newName" class="form-label required-label">Ticket Name</label>
+                                            <input type="text" class="form-control" id="newName" name="name" 
+                                                   placeholder="e.g., VIP, General Admission" required>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <label for="newType" class="form-label">Ticket Type</label>
+                                            <select class="form-select" id="newType" name="type">
+                                                <option value="general">General</option>
+                                                <option value="vip">VIP</option>
+                                                <option value="premium">Premium</option>
+                                                <option value="early_bird">Early Bird</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-lg-12">
+                                            <label for="newDescription" class="form-label">Description</label>
+                                            <textarea class="form-control" id="newDescription" name="description" 
+                                                      rows="3" placeholder="Describe what this ticket includes"></textarea>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <label for="newPrice" class="form-label required-label">Price</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="newPrice" name="price" 
+                                                       min="0" step="0.01" value="0.00" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <label for="newQuantity" class="form-label required-label">Quantity</label>
+                                            <input type="number" class="form-control" id="newQuantity" name="quantity" 
+                                                   min="1" value="100" required>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <label for="newSaleStartDate" class="form-label required-label">Sale Start Date</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                                <input type="text" class="form-control datepicker" id="newSaleStartDate" name="saleStartDate" 
+                                                       value="<%= new Date().toISOString().slice(0, 16).replace('T', ' ') %>" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <label for="newSaleEndDate" class="form-label required-label">Sale End Date</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="ri-calendar-line"></i></span>
+                                                <input type="text" class="form-control datepicker" id="newSaleEndDate" name="saleEndDate" 
+                                                       value="<%= new Date(event.startDate).toISOString().slice(0, 16).replace('T', ' ') %>" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <label for="newIsActive" class="form-label">Status</label>
+                                            <select class="form-select" id="newIsActive" name="isActive">
+                                                <option value="true" selected>Active</option>
+                                                <option value="false">Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Create Ticket</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- container -->
+            <%- include('../partials/footer') %>
+        </div>
+        <!-- ============================================================== -->
+        <!-- End Page content -->
+        <!-- ============================================================== -->
+    </div>
+    <!-- END wrapper -->
+
+    <!-- Flatpickr date-time picker JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize date-time pickers
+            const dateConfig = {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                time_24hr: true,
+                allowInput: true
+            };
+            
+            // Initialize all date pickers with class 'datepicker'
+            flatpickr(".datepicker", dateConfig);
+            
+            // Add validation for sale dates on form submission
+            const ticketForms = document.querySelectorAll('form');
+            ticketForms.forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    if (form.querySelector('#newSaleStartDate') || form.querySelector('#saleStartDate')) {
+                        // It's a ticket form
+                        const startDateInput = form.querySelector('#newSaleStartDate') || form.querySelector('#saleStartDate');
+                        const endDateInput = form.querySelector('#newSaleEndDate') || form.querySelector('#saleEndDate');
+                        
+                        const startDate = new Date(startDateInput.value);
+                        const endDate = new Date(endDateInput.value);
+                        const eventStartDate = new Date('<%= event.startDate %>');
+                        
+                        if (endDate < startDate) {
+                            event.preventDefault();
+                            alert('Sale end date cannot be earlier than sale start date.');
+                            return false;
+                        }
+                        
+                        if (endDate > eventStartDate) {
+                            event.preventDefault();
+                            alert('Sale end date cannot be later than the event start date.');
+                            return false;
+                        }
+                    }
+                });
+            });
+            
+            // Set up new ticket modal defaults when it opens
+            const addTicketModal = document.getElementById('addTicketModal');
+            if (addTicketModal) {
+                addTicketModal.addEventListener('show.bs.modal', function() {
+                    // Set current date as default start date
+                    const today = new Date();
+                    const formattedToday = today.toISOString().slice(0, 16).replace('T', ' ');
+                    document.getElementById('newSaleStartDate').value = formattedToday;
+                    
+                    // Set event start date as default end date
+                    const eventDate = new Date('<%= event.startDate %>');
+                    const formattedEventDate = eventDate.toISOString().slice(0, 16).replace('T', ' ');
+                    document.getElementById('newSaleEndDate').value = formattedEventDate;
+                    
+                    // Reset form
+                    document.getElementById('newName').value = '';
+                    document.getElementById('newDescription').value = '';
+                    document.getElementById('newPrice').value = '0.00';
+                    document.getElementById('newQuantity').value = '100';
+                    document.getElementById('newType').value = 'general';
+                    document.getElementById('newIsActive').value = 'true';
+                });
+            }
+        });
+    </script>
+
+    <%- include('../partials/footer-scripts') %>
+</body>
+</html>

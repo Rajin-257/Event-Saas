@@ -1,56 +1,47 @@
-/**
- * User Routes
- */
 const express = require('express');
 const router = express.Router();
+const { check } = require('express-validator');
 const userController = require('../controllers/userController');
-const { ensureAuthenticated } = require('../middlewares/auth');
-const validators = require('../utils/validators');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const { ensureAuthenticated, ensureAdmin } = require('../middleware/auth');
+const { upload, handleUploadError } = require('../middleware/upload');
 
-// Ensure upload directory exists
-const profileUploadDir = 'public/uploads/profiles';
-if (!fs.existsSync(profileUploadDir)){
-  fs.mkdirSync(profileUploadDir, { recursive: true });
-}
+// Profile
+router.get('/profile', ensureAuthenticated, userController.getProfile);
 
-// Configure multer for profile image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, profileUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    const ext = file.originalname.split('.').pop();
-    cb(null, `profile-${req.user.id}-${uniqueSuffix}.${ext}`);
-  }
-});
+// Update profile
+router.post('/profile', [
+  ensureAuthenticated,
+  upload.single('profileImage'),
+  handleUploadError,
+  check('name', 'Name is required').notEmpty(),
+  check('email', 'Please include a valid email').isEmail(),
+  check('phone', 'Please include a valid phone number').optional().isMobilePhone()
+], userController.updateProfile);
 
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
+// Change password
+router.post('/change-password', [
+  ensureAuthenticated,
+  check('currentPassword', 'Current password is required').notEmpty(),
+  check('newPassword', 'Password must be at least 6 characters').isLength({ min: 6 }),
+  check('confirmPassword', 'Passwords do not match').custom((value, { req }) => value === req.body.newPassword)
+], userController.changePassword);
 
-// API Routes
-router.get('/api/profile', ensureAuthenticated, userController.getProfile);
-router.put('/api/profile', ensureAuthenticated, upload.single('profile_image'), validators.updateUserRules, validators.validate, userController.updateProfile);
-router.get('/api/stats', ensureAuthenticated, userController.getUserStats);
-router.get('/api/transactions', ensureAuthenticated, validators.paginationRules, validators.validate, userController.getUserTransactions);
+// Admin routes for user management
+router.get('/admin/users', ensureAdmin, userController.getAllUsers);
 
-// Web Routes
-router.get('/profile', ensureAuthenticated, userController.renderProfilePage);
-router.get('/transactions', ensureAuthenticated, userController.renderTransactionsPage);
-router.get('/referrals', ensureAuthenticated, userController.renderReferralsPage);
+router.get('/admin/users/:id', ensureAdmin, userController.getUserById);
+
+router.post('/admin/users/:id/role', [
+  ensureAdmin,
+  check('role', 'Role is required').isIn(['super_admin', 'organizer', 'attendee'])
+], userController.updateUserRole);
+
+router.post('/admin/users/:id/status', [
+  ensureAdmin,
+  check('status', 'Status is required').isIn(['active', 'inactive', 'blocked'])
+], userController.updateUserStatus);
+
+// Get referral code and stats
+router.get('/referrals', ensureAuthenticated, userController.getReferrals);
 
 module.exports = router;

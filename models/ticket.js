@@ -1,117 +1,162 @@
-// models/ticket.js
 const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
+const Event = require('./Event');
+const User = require('./User');
 
-module.exports = (sequelize) => {
-  const Ticket = sequelize.define('Ticket', {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false
-    },
-    ticket_code: {
-      type: DataTypes.STRING(20),
-      allowNull: false,
-      unique: true
-    },
-    event_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'events',
-        key: 'id'
-      }
-    },
-    ticket_type_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'ticket_types',
-        key: 'id'
-      }
-    },
-    user_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
-    },
-    purchaser_name: {
-      type: DataTypes.STRING(100),
-      allowNull: false
-    },
-    purchaser_email: {
-      type: DataTypes.STRING(100),
-      allowNull: false
-    },
-    purchaser_phone: {
-      type: DataTypes.STRING(20),
-      allowNull: false
-    },
-    unit_price: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
-    },
-    quantity: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1
-    },
-    total_amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
-    },
-    referral_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    status: {
-      type: DataTypes.ENUM('pending', 'confirmed', 'cancelled', 'used'),
-      defaultValue: 'pending'
-    },
-    payment_status: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
-      defaultValue: 'pending'
-    },
-    checked_in: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
-    },
-    checked_in_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    attendee_photo: {
-      type: DataTypes.STRING(255),
-      allowNull: true
-    },
-    qr_code: {
-      type: DataTypes.STRING(255),
-      allowNull: true
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
+// Ticket Type Model
+const TicketType = sequelize.define('TicketType', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  eventId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: Event,
+      key: 'id'
     }
-  }, {
-    tableName: 'tickets',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    indexes: [
-      { fields: ['ticket_code'] },
-      { fields: ['status'] },
-      { fields: ['payment_status'] }
-    ]
-  });
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  availableQuantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  type: {
+    type: DataTypes.ENUM('vip', 'general', 'premium', 'early_bird', 'other'),
+    defaultValue: 'general'
+  },
+  saleStartDate: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  saleEndDate: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  }
+});
 
-  return Ticket;
-};
+// Ticket Model (purchased tickets)
+const Ticket = sequelize.define('Ticket', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  ticketTypeId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: TicketType,
+      key: 'id'
+    }
+  },
+  eventId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: Event,
+      key: 'id'
+    }
+  },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: User,
+      key: 'id'
+    }
+  },
+  referrerId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: User,
+      key: 'id'
+    }
+  },
+  purchaseDate: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  purchasePrice: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  discountAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00
+  },
+  finalPrice: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('booked', 'confirmed', 'cancelled', 'refunded', 'used'),
+    defaultValue: 'booked'
+  },
+  paymentStatus: {
+    type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
+    defaultValue: 'pending'
+  },
+  ticketNumber: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  qrCode: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  isCheckedIn: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  checkedInAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  attendeePhoto: {
+    type: DataTypes.STRING,
+    allowNull: true
+  }
+});
+
+// Tickets Associations
+TicketType.belongsTo(Event, { foreignKey: 'eventId' });
+Event.hasMany(TicketType, { foreignKey: 'eventId' });
+
+Ticket.belongsTo(TicketType, { foreignKey: 'ticketTypeId' });
+TicketType.hasMany(Ticket, { foreignKey: 'ticketTypeId' });
+
+Ticket.belongsTo(Event, { foreignKey: 'eventId' });
+Event.hasMany(Ticket, { foreignKey: 'eventId' });
+
+Ticket.belongsTo(User, { as: 'attendee', foreignKey: 'userId' });
+User.hasMany(Ticket, { foreignKey: 'userId' });
+
+Ticket.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId' });
+
+
+module.exports = { Ticket, TicketType };

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/title-meta') %>
+    <%- include('../partials/head-css') %>
+
+    <style>
+      /* Set minimum height for the table container */
+      .user-table-container {
+        min-height: 400px; /* Adjust this value as needed */
+        position: relative;
+      }
+
+      /* Make table full width and control overflow */
+      .user-table-container .table-responsive {
+        overflow-x: visible;
+        overflow-y: visible;
+      }
+
+      /* Style for the table */
+      .user-table {
+        width: 100%;
+      }
+
+      /* Ensure dropdown menus appear over other content */
+      .dropdown-menu {
+        position: absolute;
+        z-index: 1000;
+        padding: 0.5rem 0;
+        margin: 0;
+        min-width: 10rem;
+      }
+
+      /* Fix for small screens - allow vertical layout instead of horizontal scrolling */
+      @media (max-width: 992px) {
+        .table-responsive {
+          overflow-x: visible;
+        }
+
+        /* Optional: Stack the cells on small screens */
+        .responsive-stack-table thead {
+          display: none;
+        }
+
+        .responsive-stack-table tbody tr {
+          display: block;
+          border: 1px solid #dee2e6;
+          margin-bottom: 1rem;
+          border-radius: 0.25rem;
+          padding: 0.5rem;
+        }
+
+        .responsive-stack-table tbody tr td {
+          display: block;
+          text-align: right;
+          padding: 0.5rem;
+          border: none;
+          position: relative;
+        }
+
+        .responsive-stack-table tbody tr td:before {
+          content: attr(data-label);
+          float: left;
+          font-weight: bold;
+        }
+      }
+    </style>
+</head>
+
+<body>
+    <!-- Begin page -->
+    <div class="wrapper">
+        <%- include('../partials/menu') %>
+        
+        <!-- ============================================================== -->
+        <!-- Start Page Content here -->
+        <!-- ============================================================== -->
+        <div class="page-content">
+            <div class="page-container">
+                <!-- Page title -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="page-title-box">
+                            <div class="page-title-right">
+                                <ol class="breadcrumb m-0">
+                                    <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                                    <li class="breadcrumb-item active">User Management</li>
+                                </ol>
+                            </div>
+                            <h4 class="page-title">User Management</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash messages -->
+                <%- include('../partials/messages') %>
+                
+                <!-- Filters and Search -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <form id="userSearchForm">
+                                    <div class="row g-2">
+                                        <div class="col-lg-3 col-md-6">
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="ri-search-line"></i></span>
+                                                <input type="text" class="form-control" id="searchName" placeholder="Search by name or email">
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-2 col-md-6">
+                                            <select class="form-select" id="filterRole">
+                                                <option value="">All Roles</option>
+                                                <option value="attendee">Attendee</option>
+                                                <option value="organizer">Organizer</option>
+                                                <option value="super_admin">Super Admin</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-lg-2 col-md-6">
+                                            <select class="form-select" id="filterStatus">
+                                                <option value="">All Statuses</option>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                                <option value="blocked">Blocked</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-lg-2 col-md-6">
+                                            <select class="form-select" id="filterVerified">
+                                                <option value="">All Verification</option>
+                                                <option value="true">Verified</option>
+                                                <option value="false">Not Verified</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-lg-3 col-md-12">
+                                            <div class="d-grid d-md-flex justify-content-md-end">
+                                                <button type="button" class="btn btn-primary mb-2 me-md-2" onclick="filterUsers()">
+                                                    <i class="ri-search-line me-1"></i> Search
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" onclick="resetFilters()">
+                                                    <i class="ri-refresh-line me-1"></i> Reset
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Table with Modified Structure -->
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="user-table-container">
+                                    <div class="table-responsive">
+                                        <table class="table table-centered table-hover mb-0 user-table responsive-stack-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Email</th>
+                                                    <th>Role</th>
+                                                    <th>Status</th>
+                                                    <th>Verified</th>
+                                                    <th>Wallet</th>
+                                                    <th>Joined Date</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <% if (users && users.length > 0) { %>
+                                                    <% users.forEach(user => { %>
+                                                        <tr>
+                                                            <td data-label="Name"><%= user.name %></td>
+                                                            <td data-label="Email"><a href="mailto:<%= user.email %>"><%= user.email %></a></td>
+                                                            <td data-label="Role">
+                                                                <% 
+                                                                    let roleBadgeClass = "badge bg-info";
+                                                                    if (user.role === 'super_admin') {
+                                                                        roleBadgeClass = "badge bg-danger";
+                                                                    } else if (user.role === 'organizer') {
+                                                                        roleBadgeClass = "badge bg-warning";
+                                                                    }
+                                                                %>
+                                                                <span class="<%= roleBadgeClass %>"><%= user.role %></span>
+                                                            </td>
+                                                            <td data-label="Status">
+                                                                <% 
+                                                                    let statusBadgeClass = "badge bg-success";
+                                                                    if (user.status === 'inactive') {
+                                                                        statusBadgeClass = "badge bg-warning";
+                                                                    } else if (user.status === 'blocked') {
+                                                                        statusBadgeClass = "badge bg-danger";
+                                                                    }
+                                                                %>
+                                                                <span class="<%= statusBadgeClass %>"><%= user.status %></span>
+                                                            </td>
+                                                            <td data-label="Verified">
+                                                                <% if (user.verified) { %>
+                                                                    <span class="badge bg-success"><i class="ri-check-line"></i> Yes</span>
+                                                                <% } else { %>
+                                                                    <span class="badge bg-warning"><i class="ri-close-line"></i> No</span>
+                                                                <% } %>
+                                                            </td>
+                                                            <td data-label="Wallet">$<%= parseFloat(user.walletBalance).toFixed(2) %></td>
+                                                            <td data-label="Joined Date"><%= new Date(user.createdAt).toLocaleDateString() %></td>
+                                                            <td data-label="Actions">
+                                                                <div class="dropdown">
+                                                                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                        Actions
+                                                                    </button>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li>
+                                                                            <button class="dropdown-item" onclick="window.location.href='/users/admin/users/<%= user.id %>'">
+                                                                                View Details
+                                                                            </button>
+                                                                        </li>
+                                                                        <li>
+                                                                            <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#changeRoleModal<%= user.id %>">
+                                                                                Change Role
+                                                                            </button>
+                                                                        </li>
+                                                                        <li>
+                                                                            <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#changeStatusModal<%= user.id %>">
+                                                                                Change Status
+                                                                            </button>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+
+                                                                <!-- Role Change Modal -->
+                                                                <div class="modal fade" id="changeRoleModal<%= user.id %>" tabindex="-1" aria-hidden="true">
+                                                                    <div class="modal-dialog">
+                                                                        <div class="modal-content">
+                                                                            <form action="/users/admin/users/<%= user.id %>/role" method="POST">
+                                                                                <div class="modal-header">
+                                                                                    <h5 class="modal-title">Change Role: <%= user.name %></h5>
+                                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                </div>
+                                                                                <div class="modal-body">
+                                                                                    <div class="mb-3">
+                                                                                        <label for="role<%= user.id %>" class="form-label">Select Role</label>
+                                                                                        <select class="form-select" name="role" id="role<%= user.id %>" required>
+                                                                                            <option value="attendee" <%= user.role === 'attendee' ? 'selected' : '' %>>Attendee</option>
+                                                                                            <option value="organizer" <%= user.role === 'organizer' ? 'selected' : '' %>>Organizer</option>
+                                                                                        </select>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="modal-footer">
+                                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                                    <button type="submit" class="btn btn-primary">Update Role</button>
+                                                                                </div>
+                                                                            </form>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Status Change Modal -->
+                                                                <div class="modal fade" id="changeStatusModal<%= user.id %>" tabindex="-1" aria-hidden="true">
+                                                                    <div class="modal-dialog">
+                                                                        <div class="modal-content">
+                                                                            <form action="/users/admin/users/<%= user.id %>/status" method="POST">
+                                                                                <div class="modal-header">
+                                                                                    <h5 class="modal-title">Change Status: <%= user.name %></h5>
+                                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                                </div>
+                                                                                <div class="modal-body">
+                                                                                    <div class="mb-3">
+                                                                                        <label for="status<%= user.id %>" class="form-label">Select Status</label>
+                                                                                        <select class="form-select" name="status" id="status<%= user.id %>" required>
+                                                                                            <option value="active" <%= user.status === 'active' ? 'selected' : '' %>>Active</option>
+                                                                                            <option value="inactive" <%= user.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                                                                                            <option value="blocked" <%= user.status === 'blocked' ? 'selected' : '' %>>Blocked</option>
+                                                                                        </select>
+                                                                                    </div>
+                                                                                    <div class="alert alert-warning">
+                                                                                        <i class="ri-alert-line me-2"></i>
+                                                                                        <strong>Warning:</strong> Changing the user status to "Blocked" will prevent them from logging in.
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="modal-footer">
+                                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                                    <button type="submit" class="btn btn-primary">Update Status</button>
+                                                                                </div>
+                                                                            </form>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    <% }); %>
+                                                <% } else { %>
+                                                    <tr class="no-users-row">
+                                                        <td colspan="8" class="text-center py-5">
+                                                            <div class="py-4">
+                                                                <i class="ri-user-search-line" style="font-size: 48px; opacity: 0.5;"></i>
+                                                                <h5 class="mt-3">No Users Found</h5>
+                                                                <p class="text-muted">No users match your search criteria or there are no users in the system yet.</p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- container -->
+            <%- include('../partials/footer') %>
+        </div>
+        <!-- ============================================================== -->
+        <!-- End Page content -->
+        <!-- ============================================================== -->
+    </div>
+    <!-- END wrapper -->
+
+
+    <script>
+        // Enhanced user management script
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize state
+            const state = {
+                currentPage: 1,
+                rowsPerPage: 10,
+                filteredRows: [],
+                filters: {
+                    searchTerm: '',
+                    role: '',
+                    status: '',
+                    verified: ''
+                }
+            };
+        
+            // Load saved filters
+            initializeFilters();
+            
+            // Set up UI components
+            setupDropdowns();
+            setupPagination();
+            
+            // Initial filtering
+            filterUsers();
+            
+            // Add event listeners
+            addEventListeners();
+            
+            // Initialize filters from localStorage
+            function initializeFilters() {
+                const savedFilters = JSON.parse(localStorage.getItem('userManagementFilters') || '{}');
+                
+                if (savedFilters.searchName) {
+                    document.getElementById('searchName').value = savedFilters.searchName;
+                    state.filters.searchTerm = savedFilters.searchName.toLowerCase();
+                }
+                
+                if (savedFilters.filterRole) {
+                    document.getElementById('filterRole').value = savedFilters.filterRole;
+                    state.filters.role = savedFilters.filterRole;
+                }
+                
+                if (savedFilters.filterStatus) {
+                    document.getElementById('filterStatus').value = savedFilters.filterStatus;
+                    state.filters.status = savedFilters.filterStatus;
+                }
+                
+                if (savedFilters.filterVerified) {
+                    document.getElementById('filterVerified').value = savedFilters.filterVerified;
+                    state.filters.verified = savedFilters.filterVerified;
+                }
+                
+                if (savedFilters.rowsPerPage) {
+                    state.rowsPerPage = parseInt(savedFilters.rowsPerPage);
+                }
+            }
+            
+            // Add all event listeners
+            function addEventListeners() {
+                // Search on Enter key
+                document.getElementById('searchName').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        filterUsers();
+                    }
+                });
+                
+                // Search button
+                document.querySelector('button[onclick="filterUsers()"]').addEventListener('click', filterUsers);
+                
+                // Reset button
+                document.querySelector('button[onclick="resetFilters()"]').addEventListener('click', resetFilters);
+                
+                // Page size selector
+                document.getElementById('pageSizeSelector').addEventListener('change', changePageSize);
+            }
+            
+            // Setup dropdown positioning
+            function setupDropdowns() {
+                const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+                
+                dropdownToggles.forEach(toggle => {
+                    toggle.addEventListener('click', function() {
+                        const dropdownMenu = this.nextElementSibling;
+                        if (!dropdownMenu) return;
+                        
+                        // Use requestAnimationFrame for better performance and layout calculation
+                        requestAnimationFrame(() => {
+                            positionDropdown(dropdownMenu);
+                        });
+                    });
+                });
+            }
+            
+            // Position dropdown properly based on available space
+            function positionDropdown(dropdownMenu) {
+                const windowHeight = window.innerHeight;
+                const windowWidth = window.innerWidth;
+                const dropdownRect = dropdownMenu.getBoundingClientRect();
+                
+                // Check vertical positioning
+                const bottomSpace = windowHeight - dropdownRect.top;
+                if (bottomSpace < dropdownRect.height && dropdownRect.top > dropdownRect.height) {
+                    dropdownMenu.classList.add('dropdown-menu-up');
+                    dropdownMenu.style.bottom = '100%';
+                    dropdownMenu.style.top = 'auto';
+                } else {
+                    dropdownMenu.classList.remove('dropdown-menu-up');
+                    dropdownMenu.style.bottom = 'auto';
+                    dropdownMenu.style.top = '100%';
+                }
+                
+                // Check horizontal positioning
+                const rightOverflow = windowWidth - (dropdownRect.left + dropdownRect.width);
+                if (rightOverflow < 0) {
+                    dropdownMenu.style.left = 'auto';
+                    dropdownMenu.style.right = '0';
+                }
+            }
+            
+            // Set up pagination controls
+            function setupPagination() {
+                const tableContainer = document.querySelector('.table-responsive');
+                if (!tableContainer || document.getElementById('paginationControls')) return;
+                
+                const paginationDiv = document.createElement('div');
+                paginationDiv.id = 'paginationControls';
+                paginationDiv.className = 'd-flex justify-content-between align-items-center mt-3 flex-wrap';
+                
+                paginationDiv.innerHTML = `
+                    <div id="pageInfo" class="text-muted mb-2 mb-sm-0">
+                        Showing 0 to 0 of 0 users
+                    </div>
+                
+                    <div class="d-flex align-items-center flex-wrap">
+                        <div class="btn-group me-2 mb-2 mb-sm-0">
+                            <button class="btn btn-sm btn-outline-primary" id="firstPage" title="First Page">
+                                <i class="ti ti-corner-down-left-double"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" id="prevPage" title="Previous Page">
+                                <i class="ti ti-arrow-left"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary disabled" id="pageIndicator">
+                                Page 1
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" id="nextPage" title="Next Page">
+                                <i class="ti ti-arrow-right"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" id="lastPage" title="Last Page">
+                                <i class="ti ti-corner-down-right-double"></i>
+                            </button>
+                        </div>
+                    
+                        <div>
+                            <select class="form-select form-select-sm" id="pageSizeSelector">
+                                <option value="10">10 per page</option>
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                
+                tableContainer.insertAdjacentElement('afterend', paginationDiv);
+                
+                // Add pagination event listeners
+                document.getElementById('firstPage').addEventListener('click', () => goToPage(1));
+                document.getElementById('prevPage').addEventListener('click', () => goToPage(state.currentPage - 1));
+                document.getElementById('nextPage').addEventListener('click', () => goToPage(state.currentPage + 1));
+                document.getElementById('lastPage').addEventListener('click', () => {
+                    const totalPages = Math.ceil(state.filteredRows.length / state.rowsPerPage);
+                    goToPage(totalPages);
+                });
+                
+                // Set initial page size
+                const pageSizeSelector = document.getElementById('pageSizeSelector');
+                if (pageSizeSelector) {
+                    pageSizeSelector.value = state.rowsPerPage.toString();
+                }
+            }
+            
+            // Filter users based on criteria
+            function filterUsers() {
+                // Update filters from form
+                state.filters.searchTerm = document.getElementById('searchName').value.toLowerCase();
+                state.filters.role = document.getElementById('filterRole').value;
+                state.filters.status = document.getElementById('filterStatus').value;
+                state.filters.verified = document.getElementById('filterVerified').value;
+                
+                // Save to localStorage
+                saveFilters();
+                
+                // Get all user rows except the "no users" placeholder
+                const userRows = Array.from(document.querySelectorAll('table tbody tr')).filter(
+                    row => !row.classList.contains('no-users-row')
+                );
+                
+                // Apply filters
+                state.filteredRows = userRows.filter(row => {
+                    const name = row.cells[0]?.textContent.toLowerCase() || '';
+                    const email = row.cells[1]?.textContent.toLowerCase() || '';
+                    
+                    const roleBadge = row.querySelector('td:nth-child(3) span');
+                    const statusBadge = row.querySelector('td:nth-child(4) span');
+                    const verifiedBadge = row.querySelector('td:nth-child(5) span');
+                    
+                    const role = roleBadge?.textContent.toLowerCase() || '';
+                    const status = statusBadge?.textContent.toLowerCase() || '';
+                    const verified = verifiedBadge?.textContent.includes('Yes') || false;
+                    
+                    const matchesSearch = state.filters.searchTerm === '' || 
+                                        name.includes(state.filters.searchTerm) || 
+                                        email.includes(state.filters.searchTerm);
+                    
+                    const matchesRole = state.filters.role === '' || role === state.filters.role;
+                    const matchesStatus = state.filters.status === '' || status === state.filters.status;
+                    const matchesVerified = state.filters.verified === '' || 
+                                         (state.filters.verified === 'true' && verified) || 
+                                         (state.filters.verified === 'false' && !verified);
+                    
+                    return matchesSearch && matchesRole && matchesStatus && matchesVerified;
+                });
+                
+                // Reset to first page
+                state.currentPage = 1;
+                
+                // Update UI
+                updateEmptyState();
+                updatePaginationUI();
+                displayCurrentPage();
+            }
+            
+            // Reset all filters
+            function resetFilters() {
+                document.getElementById('searchName').value = '';
+                document.getElementById('filterRole').value = '';
+                document.getElementById('filterStatus').value = '';
+                document.getElementById('filterVerified').value = '';
+                
+                // Clear state
+                state.filters = {
+                    searchTerm: '',
+                    role: '',
+                    status: '',
+                    verified: ''
+                };
+                
+                // Remove from localStorage
+                localStorage.removeItem('userManagementFilters');
+                
+                // Reset to first page
+                state.currentPage = 1;
+                
+                // Re-apply filters
+                filterUsers();
+            }
+            
+            // Save current filters to localStorage
+            function saveFilters() {
+                const filters = {
+                    searchName: document.getElementById('searchName').value,
+                    filterRole: document.getElementById('filterRole').value,
+                    filterStatus: document.getElementById('filterStatus').value,
+                    filterVerified: document.getElementById('filterVerified').value,
+                    rowsPerPage: state.rowsPerPage
+                };
+                
+                localStorage.setItem('userManagementFilters', JSON.stringify(filters));
+            }
+            
+            // Show/hide empty state message
+            function updateEmptyState() {
+                const tbody = document.querySelector('table tbody');
+                if (!tbody) return;
+                
+                let noUsersRow = document.querySelector('.no-users-row');
+                
+                // Create "no users" row if it doesn't exist
+                if (!noUsersRow) {
+                    noUsersRow = document.createElement('tr');
+                    noUsersRow.className = 'no-users-row';
+                    noUsersRow.innerHTML = `
+                        <td colspan="8" class="text-center py-5">
+                            <div class="py-4">
+                                <i class="ri-filter-line" style="font-size: 48px; opacity: 0.5;"></i>
+                                <h5 class="mt-3">No Matching Users</h5>
+                                <p class="text-muted">No users match your filter criteria. Try adjusting your filters.</p>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(noUsersRow);
+                }
+                
+                // Show/hide based on filtered results
+                noUsersRow.style.display = state.filteredRows.length === 0 ? '' : 'none';
+            }
+            
+            // Update pagination controls
+            function updatePaginationUI() {
+                const totalRows = state.filteredRows.length;
+                const totalPages = Math.max(1, Math.ceil(totalRows / state.rowsPerPage));
+                
+                // Update page info text
+                const pageInfo = document.getElementById('pageInfo');
+                if (pageInfo) {
+                    const startItem = totalRows > 0 ? (state.currentPage - 1) * state.rowsPerPage + 1 : 0;
+                    const endItem = Math.min(state.currentPage * state.rowsPerPage, totalRows);
+                    pageInfo.textContent = `Showing ${startItem} to ${endItem} of ${totalRows} users`;
+                }
+                
+                // Update page indicator
+                const pageIndicator = document.getElementById('pageIndicator');
+                if (pageIndicator) {
+                    pageIndicator.textContent = `Page ${state.currentPage} of ${totalPages}`;
+                }
+                
+                // Enable/disable pagination buttons
+                document.getElementById('firstPage').disabled = state.currentPage <= 1;
+                document.getElementById('prevPage').disabled = state.currentPage <= 1;
+                document.getElementById('nextPage').disabled = state.currentPage >= totalPages;
+                document.getElementById('lastPage').disabled = state.currentPage >= totalPages;
+                
+                // Ensure page size selector shows correct value
+                const pageSizeSelector = document.getElementById('pageSizeSelector');
+                if (pageSizeSelector) {
+                    let option = pageSizeSelector.querySelector(`option[value="${state.rowsPerPage}"]`);
+                    if (!option) {
+                        option = new Option(`${state.rowsPerPage} per page`, state.rowsPerPage);
+                        pageSizeSelector.add(option);
+                    }
+                    pageSizeSelector.value = state.rowsPerPage.toString();
+                }
+            }
+            
+            // Change number of items per page
+            function changePageSize() {
+                const newPageSize = parseInt(this.value);
+                if (!isNaN(newPageSize) && newPageSize > 0) {
+                    state.rowsPerPage = newPageSize;
+                    state.currentPage = 1;
+                    saveFilters();
+                    displayCurrentPage();
+                    updatePaginationUI();
+                }
+            }
+            
+            // Display current page of data
+            function displayCurrentPage() {
+                const startIndex = (state.currentPage - 1) * state.rowsPerPage;
+                const endIndex = Math.min(startIndex + state.rowsPerPage, state.filteredRows.length);
+                
+                // Hide all rows first
+                const allRows = document.querySelectorAll('table tbody tr:not(.no-users-row)');
+                allRows.forEach(row => row.style.display = 'none');
+                
+                // Show only rows for current page
+                for (let i = startIndex; i < endIndex; i++) {
+                    if (state.filteredRows[i]) {
+                        state.filteredRows[i].style.display = '';
+                    }
+                }
+            }
+            
+            // Navigate to specific page
+            function goToPage(pageNum) {
+                const totalPages = Math.max(1, Math.ceil(state.filteredRows.length / state.rowsPerPage));
+                pageNum = Math.max(1, Math.min(pageNum, totalPages));
+                
+                if (pageNum !== state.currentPage) {
+                    state.currentPage = pageNum;
+                    displayCurrentPage();
+                    updatePaginationUI();
+                }
+            }
+        });
+    </script>
+    <%- include('../partials/customizer') %>
+    <%- include('../partials/footer-scripts') %>
+</body>
+</html>

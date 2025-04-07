@@ -1,219 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <%- include('../partials/title-meta.ejs', {title: "Sign Up"}) %>
-    <%- include('../partials/head-css.ejs') %>
+    <meta charset="utf-8" />
+    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
+    <meta content="Coderthemes" name="author" />
+
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="/assets/images/favicon.ico">
+
+    <!-- Theme Config Js -->
+    <script src="/assets/js/config.js"></script>
+
+    <!-- Vendor css -->
+    <link href="/assets/css/vendor.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- App css -->
+    <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-style" />
+
+    <!-- Icons css -->
+    <link href="/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
 </head>
 
-<body>
-    <div class="account-pages my-5 pt-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8 col-lg-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="text-center mb-4 mt-3">
-                                <a href="index.html" class="logo p-0 lh-base">
-                                    <span class="logo-dark"><img src="/admin/images/logo-dark.png" alt="" height="30"></span>
-                                    <span class="logo-light"><img src="/admin/images/logo-light.png" alt="" height="30"></span>
-                                </a>
+<body class="h-100">
+
+    <div class="auth-bg d-flex min-vh-100 justify-content-center align-items-center">
+        <div class="row g-0 justify-content-center w-100 m-xxl-5 px-xxl-4 m-3">
+            <div class="col-xl-4 col-lg-5 col-md-6">
+                <div class="card overflow-hidden text-center h-100 p-xxl-4 p-3 mb-0">
+                    <a href="/" class="auth-brand mb-3">
+                        <img src="/assets/images/logo-dark.png" alt="dark logo" height="24" class="logo-dark">
+                        <img src="/assets/images/logo.png" alt="logo light" height="24" class="logo-light">
+                    </a>
+
+                    <h4 class="fw-semibold mb-2">Welcome to Boron Admin</h4>
+
+                    <%- include('../partials/messages') %>
+
+                    <form action="/register" method="POST" class="text-start mb-3">
+                        <div class="mb-3">
+                          <label for="name" class="form-label">Full Name</label>
+                          <input type="text" class="form-control" id="name" name="name" placeholder="Enter Your Full Name" required>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="email" class="form-label">Email address</label>
+                          <input type="email" class="form-control" id="email" name="email" placeholder="Enter Your Email" required>
+                          <div class="form-text">We'll never share your email with anyone else.</div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="phone" class="form-label">Phone Number (optional)</label>
+                          <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter Your Number">
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="password" class="form-label">Password</label>
+                          <input type="password" class="form-control" id="password" name="password" placeholder="Enter Your Password" required>
+                          <div class="form-text">Password must be at least 6 characters long.</div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="password2" class="form-label">Confirm Password</label>
+                          <input type="password" class="form-control" id="password2" name="password2" placeholder="Enter Your Password" required>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="role" class="form-label">Register as</label>
+                          <select class="form-select" id="role" name="role">
+                            <option value="attendee" <%= typeof role != 'undefined' && role === 'attendee' ? 'selected' : '' %>>Attendee (Regular User)</option>
+                            <option value="organizer" <%= typeof role != 'undefined' && role === 'organizer' ? 'selected' : '' %>>Event Organizer</option>
+                          </select>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="referralCode" class="form-label">Referral Code (optional)</label>
+                          <input type="text" class="form-control" id="referralCode" name="referralCode" placeholder="Enter Refer Code if Exist">
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="checkbox-signin">
+                                <label class="form-check-label" for="checkbox-signin">I agree to all <a href="#!" class="link-dark text-decoration-underline">Terms & Condition</a> </label>
                             </div>
-                            <%- include('../partials/alert.ejs') %>
-                            <form action="/register" method="post" class="p-2">
-                                <div class="form-group">
-                                    <label for="first_name">First Name</label>
-                                    <input type="text" id="first_name" name="first_name" class="form-control" required placeholder="Enter your first name">
-                                </div>
-                                <div class="form-group">
-                                    <label for="last_name">Last Name</label>
-                                    <input type="text" id="last_name" name="last_name" class="form-control" required placeholder="Enter your last name">
-                                </div>
-                                <div class="form-group">
-                                    <label for="email">Email address</label>
-                                    <input type="email" id="email" name="email" class="form-control" required placeholder="Enter your email">
-                                </div>
-                                <div class="form-group">
-                                    <label for="phone">Phone</label>
-                                    <input type="tel" id="phone" name="phone" class="form-control" placeholder="Enter your phone number">
-                                </div>
-                                <div class="form-group">
-                                    <label for="password">Password</label>
-                                    <input type="password" id="password" name="password" class="form-control" required placeholder="Enter your password">
-                                </div>
-                                <div class="form-group">
-                                    <label for="password_confirm">Confirm Password</label>
-                                    <input type="password" id="password_confirm" name="password_confirm" class="form-control" required placeholder="Confirm your password">
-                                </div>
-                                <div class="form-group mb-4 pb-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="terms" name="terms" required >
-                                        <label class="form-check-label" for="terms">I accept <a href="#">Terms and Conditions</a></label>
-                                    </div>                                                                  
-                                </div>
-                                <div class="mb-3 text-center">
-                                    <button class="btn btn-primary btn-block w-100" type="submit"> Sign Up Free </button>
-                                </div>
-                            </form>
                         </div>
-                        <!-- end card-body -->
-                    </div>
-                    <!-- end card -->
-                    
-                    <div class="row mt-4">
-                        <div class="col-sm-12 text-center">
-                            <p class="text-muted mb-0">Already have an account? <a href="/login" class="text-dark ms-1"><b>Sign In</b></a></p>
+
+                        <div class="d-grid">
+                            <button class="btn btn-primary" type="submit">Sign Up</button>
                         </div>
-                    </div>
+                    </form>
+
+                    <p class="text-danger fs-14 mb-4">Already have an account? <a href="/login" class="fw-semibold text-dark ms-1">Login !</a></p>
+
+                    <p class="mt-auto mb-0">
+                        <script>document.write(new Date().getFullYear())</script> © Boron - By <span class="fw-bold text-decoration-underline text-uppercase text-reset fs-12">Coderthemes</span>
+                    </p>
                 </div>
-                <!-- end col -->
             </div>
-            <!-- end row -->
         </div>
-        <!-- end container -->
     </div>
 
-    <%- include('../partials/footer-scripts.ejs') %>
+    <!-- Vendor js -->
+    <script src="/assets/js/vendor.min.js"></script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form[action="/register"]');
-    const fields = [
-        { 
-            id: 'first_name', 
-            validator: validateName, 
-            errorMsg: 'First name must be at least 2 characters' 
-        },
-        { 
-            id: 'last_name', 
-            validator: validateName, 
-            errorMsg: 'Last name must be at least 2 characters' 
-        },
-        { 
-            id: 'email', 
-            validator: validateEmail, 
-            errorMsg: 'Please enter a valid email address' 
-        },
-        { 
-            id: 'password', 
-            validator: validatePassword, 
-            errorMsg: 'Password must be 8+ chars, include number and special char' 
-        },
-        { 
-            id: 'password_confirm', 
-            validator: validatePasswordConfirm, 
-            errorMsg: 'Passwords must match' 
-        }
-    ];
+    <!-- App js -->
+    <script src="/assets/js/app.js"></script>
 
-    // Track validation state for each field
-    const fieldValidationState = {};
-
-    // Add real-time validation to each field
-    fields.forEach(field => {
-        const inputField = document.getElementById(field.id);
-        if (inputField) {
-            inputField.addEventListener('input', function() {
-                validateField(this, field.validator, field.errorMsg);
-            });
-        }
-    });
-
-    // Validation helper functions
-    function validateName(value) {
-        return value.trim().length >= 2;
-    }
-
-    function validateEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-
-    function validatePassword(password) {
-        return password.length >= 8 && 
-               /\d/.test(password) && 
-               /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password);
-    }
-
-    function validatePasswordConfirm(confirmPassword) {
-        const password = document.getElementById('password').value;
-        return confirmPassword === password;
-    }
-
-    function validateTerms() {
-        const termsCheckbox = document.getElementById('terms');
-        return termsCheckbox.checked;
-    }
-
-    // Field validation function
-    function validateField(field, validatorFn, errorMsg) {
-        // Remove existing error indicators
-        const existingError = field.parentNode.querySelector('.real-time-error');
-        if (existingError) {
-            existingError.remove();
-        }
-
-        let isValid = true;
-        // Validate the field
-        if (!field.value || !validatorFn(field.value)) {
-            // Create error indicator
-            const errorIndicator = document.createElement('div');
-            errorIndicator.textContent = errorMsg;
-            errorIndicator.className = 'real-time-error text-danger small mt-1';
-            
-            // Add error styling
-            field.classList.add('is-invalid');
-            field.parentNode.appendChild(errorIndicator);
-            
-            isValid = false;
-        } else {
-            // Remove error styling
-            field.classList.remove('is-invalid');
-        }
-
-        // Update validation state
-        fieldValidationState[field.id] = isValid;
-
-        // Check overall form validity
-        updateFormSubmitState();
-    }
-
-    // Disable/enable form submit based on validation
-    function updateFormSubmitState() {
-        const submitButton = form.querySelector('button[type="submit"]');
-        
-        // Check all fields
-        const allFieldsValid = fields.every(field => {
-            const inputField = document.getElementById(field.id);
-            return inputField.value && fieldValidationState[field.id] !== false;
-        });
-
-        // Check terms checkbox
-        const termsChecked = validateTerms();
-
-        // Enable/disable submit button
-        if (allFieldsValid && termsChecked) {
-            submitButton.disabled = false;
-            submitButton.classList.remove('btn-secondary');
-            submitButton.classList.add('btn-primary');
-        } else {
-            submitButton.disabled = true;
-            submitButton.classList.remove('btn-primary');
-            submitButton.classList.add('btn-secondary');
-        }
-    }
-
-    // Initial disable of submit button
-    const submitButton = form.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-    submitButton.classList.remove('btn-primary');
-    submitButton.classList.add('btn-secondary');
-
-    // Add validation to terms checkbox
-    const termsCheckbox = document.getElementById('terms');
-    termsCheckbox.addEventListener('change', function() {
-        updateFormSubmitState();
-    });
-});
-</script>
 </body>
+
 </html>

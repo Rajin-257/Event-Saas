@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Event Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #0d6efd;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .verify-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #28a745;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .social-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #0d6efd;
+            text-decoration: none;
+        }
+        .verification-box {
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Event Management System</div>
+            <h1>Welcome, <%= user.name %>!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Thank you for registering with Event Management System. We're excited to have you join our community!</p>
+            
+            <div class="verification-box">
+                <h3>Please Verify Your Email Address</h3>
+                <p>To activate your account and start using all features, please verify your email address:</p>
+                <a href="<%= verificationUrl %>" class="verify-button">Verify Email Address</a>
+                <p style="margin-top: 15px; font-size: 12px;">If the button doesn't work, copy and paste this URL into your browser:</p>
+                <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;"><%= verificationUrl %></p>
+            </div>
+            
+            <p>With your new account, you can:</p>
+            <ul>
+                <li>Browse and discover exciting events</li>
+                <li>Purchase tickets securely</li>
+                <li>Keep track of your upcoming events</li>
+                <li>Earn rewards by referring friends</li>
+            </ul>
+            
+            <% if (user.role === 'organizer') { %>
+                <p>As an event organizer, you can also:</p>
+                <ul>
+                    <li>Create and publish your own events</li>
+                    <li>Manage ticket sales and attendees</li>
+                    <li>Access detailed event analytics</li>
+                    <li>Process payments easily</li>
+                </ul>
+            <% } %>
+            
+            <% if (user.referralCode) { %>
+                <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 4px; text-align: center;">
+                    <p><strong>Your Referral Code:</strong></p>
+                    <h2 style="margin: 10px 0; color: #0d6efd;"><%= user.referralCode %></h2>
+                    <p>Share this code with friends and earn rewards when they register and make purchases!</p>
+                </div>
+            <% } %>
+            
+            <p>After verifying your email, you can log in and start exploring:</p>
+            
+            <div style="text-align: center;">
+                <a href="<%= process.env.BASE_URL %>/login" class="button">Go to Login</a>
+            </div>
+        </div>
+        
+        <div class="social-links">
+            <p>Follow us on social media:</p>
+            <a href="#">Facebook</a>
+            <a href="#">Twitter</a>
+            <a href="#">Instagram</a>
+        </div>
+        
+        <div class="footer">
+            <p>If you have any questions, please contact our support team at support@eventmanagementsystem.com</p>
+            <p>&copy; <%= new Date().getFullYear() %> Event Management System. All rights reserved.</p>
+            <p>
+                <small>You received this email because you registered for an account on Event Management System. 
+                If you didn't register for an account, please ignore this email.</small>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

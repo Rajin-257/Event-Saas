@@ -1,82 +1,80 @@
-// models/payment.js
 const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
+const User = require('./User');
+const { Ticket } = require('./Ticket');
 
-module.exports = (sequelize) => {
-  const Payment = sequelize.define('Payment', {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false
-    },
-    ticket_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'tickets',
-        key: 'id'
-      }
-    },
-    user_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
-    },
-    payment_method_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'payment_methods',
-        key: 'id'
-      }
-    },
-    transaction_id: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
-    amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
-    },
-    currency: {
-      type: DataTypes.STRING(3),
-      defaultValue: 'BDT'
-    },
-    status: {
-      type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
-      defaultValue: 'pending'
-    },
-    payment_date: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    payment_details: {
-      type: DataTypes.JSON,
-      allowNull: true
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
+const Payment = sequelize.define('Payment', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  ticketId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: Ticket,
+      key: 'id'
     }
-  }, {
-    tableName: 'payments',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    indexes: [
-      { fields: ['transaction_id'] },
-      { fields: ['status'] }
-    ]
-  });
+  },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: User,
+      key: 'id'
+    }
+  },
+  amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  paymentMethod: {
+    type: DataTypes.ENUM('bkash', 'nagad', 'rocket', 'card', 'manual'),
+    allowNull: false
+  },
+  transactionId: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
+    defaultValue: 'pending'
+  },
+  paymentDate: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  gatewayResponse: {
+    type: DataTypes.JSON,
+    allowNull: true
+  },
+  refundAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00
+  },
+  refundDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  refundReason: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  invoiceNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  }
+});
 
-  return Payment;
-};
+// Payment Associations
+Payment.belongsTo(Ticket, { foreignKey: 'ticketId' });
+Ticket.hasOne(Payment, { foreignKey: 'ticketId' });
+
+Payment.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Payment, { foreignKey: 'userId' });
+
+
+
+module.exports = Payment;

@@ -1,668 +1,398 @@
-/**
- * Authentication Controller
- */
 const passport = require('passport');
-const jwt = require('jsonwebtoken');
-const db = require('../models');
-const security = require('../utils/security');
+const { validationResult } = require('express-validator');
+const { Op } = require('sequelize');
+const User = require('../models/User');
 const emailService = require('../services/emailService');
-const otpService = require('../services/otpService');
-const whatsappService = require('../services/whatsappService');
-const logger = require('../utils/logger');
-const userRole = require('../models/userRole');
+const smsService = require('../services/smsService');
 
-// Models
-const User = db.User;
-const Role = db.Role;
-const Session = db.Session;
+module.exports = {
+  // Render login page
+  getLogin: (req, res) => {
+    res.render('auth/login', { title: 'Login' });
+  },
 
-/**
- * Register a new user
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.register = async (req, res) => {
-  try {
-    const { first_name, last_name, email, phone, password } = req.body;
-    
-    // Check if email already exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      req.flash('error', 'Email already in use');
-      return res.render('auth/register', {
-        messages: req.flash()
-      });
-    }
+  // Handle login
+  postLogin: (req, res, next) => {
+    passport.authenticate('local', {
+      successRedirect: '/dashboard',
+      failureRedirect: '/login',
+      failureFlash: true
+    })(req, res, next);
+  },
 
-    const existingPhone = await User.findOne({ where: { phone } });
-    if (existingPhone) {
-      req.flash('error', 'Phone number already in use');
-      return res.render('auth/register', {
-        messages: req.flash()
-      });
-    }
-    
-    // Hash password
-    const hashedPassword = await security.hashPassword(password);
-    
-    // Generate verification token
-    const verificationToken = security.generateRandomToken();
-    
-    // Create user
-    const user = await User.create({
-      first_name,
-      last_name,
-      email,
-      phone,
-      password: hashedPassword,
-      verification_token: verificationToken,
-      is_verified: false,
-      status: 'inactive'
-    });
-    
-    // Assign default 'user' role
-    const userRole = await Role.findOne({ where: { name: 'user' } });
-    if (userRole) {
-      await user.addRole(userRole);
-    }
-    
-    
-    // Generate OTP for verification
-    const otp = await otpService.generateOTP(user.id, 'verification');
-    
-    // Send verification email
-    await emailService.sendVerificationEmail(email, {
-      code: otp.code,
-      name: `${first_name} ${last_name}`,
-      verificationUrl: `${process.env.APP_URL}/verify-email?token=${verificationToken}`
-    });
-    
-    // Send verification via WhatsApp if phone is provided
-    if (phone) {
-      try {
-        await whatsappService.sendOTP(phone, otp.code, 'verification');
-      } catch (error) {
-        // Just log the error, don't fail the registration
-        logger.error(`Failed to send WhatsApp verification: ${error.message}`);
-      }
-    }
-    
-    // Return success response
-    req.flash('success', 'Registration successful. Please verify your email.');
-    return res.render('auth/login', {
-      messages: req.flash(),
-      user: security.sanitizeUser(user)
-    });
+  // Render register page
+  getRegister: (req, res) => {
+    res.render('auth/register', { title: 'Register' });
+  },
 
-  } catch (error) {
-    logger.error(`Registration error: ${error.message}`);
-    req.flash('error', 'Error 500.Registration failed');
-    return res.render('auth/register', {
-      messages: req.flash()
-    });
-  }
-};
-
-/**
- * Log in a user
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @param {function} next - Express next function
- * @returns {Promise<void>}
- */
-exports.login = (req, res, next) => {
-  passport.authenticate('local', { session: false }, async (err, user, info) => {
+  // Handle registration
+  postRegister: async (req, res) => {
     try {
-      if (err) {
-        return next(err);
+      const { name, email, password, password2, phone, role, referralCode } = req.body;
+      
+      // Validate input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.render('auth/register', {
+          title: 'Register',
+          errors: errors.array(),
+          name,
+          email,
+          phone
+        });
       }
+
+      // Check if passwords match
+      if (password !== password2) {
+        req.flash('error_msg', 'Passwords do not match');
+        return res.render('auth/register', {
+          title: 'Register',
+          name,
+          email,
+          phone
+        });
+      }
+
+      // Check if email already exists
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        req.flash('error_msg', 'Email already registered');
+        return res.render('auth/register', {
+          title: 'Register',
+          name,
+          phone
+        });
+      }
+
+      // Check referral code if provided
+      let referredBy = null;
+      if (referralCode) {
+        const referrer = await User.findOne({ where: { referralCode } });
+        if (referrer) {
+          referredBy = referrer.id;
+        }
+      }
+
+      // Default role to attendee if not specified or not allowed
+      const userRole = role === 'organizer' ? 'organizer' : 'attendee';
+
+      let status = 'active';
+      if(userRole=='organizer'){
+        status= 'inactive';
+      }
+
+      // Create new user
+      const newUser = await User.create({
+        name,
+        email,
+        password,
+        phone: phone || null,
+        role: userRole,
+        status:status,
+        referredBy
+      });
+
+      // Generate email verification token
+      const verificationToken = newUser.generateEmailVerificationToken();
+      await newUser.save();
+
+      // Create verification URL
+      const verificationUrl = `${process.env.BASE_URL}/verify-email/${verificationToken}`;
+      
+      // Send welcome email with verification link
+      try {
+        await emailService.sendEmailWithTemplate(
+          newUser.email,
+          'Welcome to Event Management System',
+          'welcome',
+          { user: newUser, verificationUrl }
+        );
+        console.log('Welcome email sent to:', email);
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Continue with registration despite email error
+      }
+      
+      // Send welcome SMS if phone is provided
+      if (phone) {
+        try {
+          await smsService.sendTextMessage(phone, `Welcome to Event Management System, ${name}! Thank you for registering with us. Please verify your email to activate your account.`);
+          console.log('Welcome SMS sent to:', phone);
+        } catch (smsError) {
+          console.error('Error sending welcome SMS:', smsError);
+          // Continue with registration despite SMS error
+        }
+      }
+
+      // Create referral relationship if applicable
+      if (referredBy) {
+        try {
+          const Referral = require('../models/Referral').Referral;
+          await Referral.create({
+            referrerId: referredBy,
+            referredUserId: newUser.id,
+            status: 'pending',
+            commissionRate: 5.00 // Default 5% commission
+          });
+          
+          // Notify referrer
+          const referrer = await User.findByPk(referredBy);
+          if (referrer) {
+            const referralMessage = `${newUser.name} has registered using your referral code. You'll earn commission when they make purchases.`;
+            await emailService.sendEmailWithTemplate(
+              referrer.email,
+              'New Referral Registration',
+              'referral_notification',
+              { referrer, newUser }
+            );
+            
+            if (referrer.phone) {
+              await smsService.sendTextMessage(referrer.phone, referralMessage);
+            }
+          }
+        } catch (referralError) {
+          console.error('Error processing referral:', referralError);
+          // Continue despite referral processing error
+        }
+      }
+
+      req.flash('success_msg', 'Registration successful! Please check your email to verify your account.');
+      res.redirect('/login');
+    } catch (err) {
+      console.error('Registration error:', err);
+      req.flash('error_msg', 'An error occurred during registration');
+      res.redirect('/register');
+    }
+  },
+
+  //resend Verification
+  resendVerification: async (req, res) => {
+    try {
+      const email = req.params.email;
+      
+      if (!email) {
+        req.flash('error_msg', 'Email is required to resend verification');
+        return res.redirect('/users/profile');
+      }
+  
+      // Find the user by email
+      const user = await User.findOne({ where: { email } });
       
       if (!user) {
-        req.flash('error', 'Invalid credentials');
-        return res.render('auth/login', {
-          messages: req.flash()
-        });
+        req.flash('error_msg', 'User not found');
+        return res.redirect('/users/profile');
       }
-      
-      // Check if user is verified
-      if (!user.is_verified) {
-        req.flash('error', 'Account not verified. Please verify your email.');
-        return res.render('auth/login', {
-          messages: req.flash(),
-          requiresVerification: true,
-          userId: user.id
-        });
+  
+      // Check if user is already verified
+      if (user.verified) {
+        req.flash('error_msg', 'This email is already verified');
+        return res.redirect('/users/profile');
       }
+  
+      // Generate new verification token
+      const verificationToken = user.generateEmailVerificationToken();
+      await user.save();
+  
+      // Create verification URL
+      const verificationUrl = `${process.env.BASE_URL}/verify-email/${verificationToken}`;
       
-      // Check if user is active
-      if (user.status !== 'active') {
-        req.flash('error', 'Account is not active. Please contact support.');
-        return res.render('auth/login', {
-          messages: req.flash()
-        });
-      }
-      
-      // Generate JWT token
-      const token = security.generateToken({ id: user.id });
-      
-      // Create session
-      await Session.create({
-        id: security.generateRandomToken(),
-        user_id: user.id,
-        ip_address: req.ip,
-        user_agent: req.headers['user-agent'],
-        last_activity: new Date(),
-        data: JSON.stringify({ browser: req.headers['user-agent'] })
-      });
-      
-      // Update user last login time
-      await user.update({
-        last_login: new Date(),
-        last_activity: new Date()
-      });
-      
-      // Login user
-      req.login(user, { session: true }, async (err) => {
-        if (err) {
-          return next(err);
-        }
-        
-        // Get user roles to determine the dashboard
-        const userWithRoles = await User.findByPk(user.id, {
-          include: [{
-            model: Role,
-            through: { attributes: [] }
-          }]
-        });
-        
-        // Determine which dashboard to show based on role
-        let dashboardRoute = '/dashboard';
-        
-        // Check if user has roles and redirect accordingly
-        if (userWithRoles && userWithRoles.Roles && userWithRoles.Roles.length > 0) {
-          const roles = userWithRoles.Roles.map(role => role.name);
-          
-          if (roles.includes('admin')) {
-            dashboardRoute = '/admin/dashboard';
-          } else if (roles.includes('manager')) {
-            dashboardRoute = '/manager/dashboard';
-          } else if (roles.includes('organizer')) {
-            dashboardRoute = '/organizer/dashboard';
-          }
-          // Add more role-based redirects as needed
-        }
-        
-        return res.redirect(dashboardRoute);
-      });
-      
-    } catch (error) {
-      logger.error(`Login error: ${error.message}`);
-      return next(error);
-    }
-  })(req, res, next);
-};
-
-/**
- * Log out a user
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.logout = async (req, res) => {
-  try {
-    // Delete session from database if using a custom Session model
-    if (req.sessionID) {
+      // Send verification email
       try {
-        await Session.destroy({ where: { id: req.sessionID } });
-      } catch (err) {
-        logger.warn(`Session deletion warning: ${err.message}`);
-        // Continue with logout even if this fails
+        await emailService.sendEmailWithTemplate(
+          user.email,
+          'Verify Your Email Address',
+          'email_verification',
+          { user, verificationUrl }
+        );
+        
+        req.flash('success_msg', 'Verification link has been sent to your email address');
+      } catch (emailError) {
+        console.error('Error sending verification email:', emailError);
+        req.flash('error_msg', 'Failed to send verification email. Please try again later.');
       }
+      
+      res.redirect('/users/profile');
+    } catch (err) {
+      console.error('Resend verification error:', err);
+      req.flash('error_msg', 'An error occurred while resending verification link');
+      res.redirect('/users/profile');
     }
-    
-    // Modern way to handle logout in Passport.js
+  },
+
+  // Verify email
+  verifyEmail: async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      // Find user by verification token
+      const user = await User.findOne({
+        where: {
+          emailVerificationToken: token,
+          emailVerificationExpires: { [Op.gt]: new Date() }
+        }
+      });
+      
+      if (!user) {
+        req.flash('error_msg', 'Email verification token is invalid or has expired');
+        return res.redirect('/login');
+      }
+      
+      // Update user as verified
+      await user.update({
+        verified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null
+      });
+      
+      req.flash('success_msg', 'Your email has been verified! You can now log in.');
+      res.redirect('/login');
+    } catch (err) {
+      console.error('Email verification error:', err);
+      req.flash('error_msg', 'An error occurred during email verification');
+      res.redirect('/login');
+    }
+  },
+
+  // Handle logout
+  logout: (req, res) => {
     req.logout(function(err) {
       if (err) {
-        logger.error(`Logout error: ${err.message}`);
-        req.flash('error', 'Error logging out');
-        return res.redirect('/dashboard');
+        console.error('Logout error:', err);
+        return next(err);
+      }
+      req.flash('success_msg', 'You are logged out');
+      res.redirect('/login');
+    });
+  },
+
+  // Render dashboard
+  getDashboard: (req, res) => {
+    try {
+      // Redirect to appropriate dashboard based on user role
+      if (req.user.role === 'super_admin') {
+        res.redirect('/dashboard/admin');
+      } else if (req.user.role === 'organizer') {
+        res.redirect('/dashboard/organizer');
+      } else {
+        res.redirect('/dashboard/attendee');
+      }
+    } catch (err) {
+      console.error('Dashboard redirect error:', err);
+      req.flash('error_msg', 'An error occurred');
+      res.redirect('/');
+    }
+  },
+  
+  // Password reset request
+  getPasswordReset: (req, res) => {
+    res.render('auth/recoverpw', { title: 'Reset Password' });
+  },
+  
+  // Handle password reset request
+  postPasswordReset: async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      // Find user by email
+      const user = await User.findOne({ where: { email } });
+      if (!user) {
+        req.flash('error_msg', 'No account with that email address exists');
+        return res.redirect('/password-reset');
       }
       
-      // Destroy the session after successful logout
-      req.session.destroy(function(err) {
-        if (err) {
-          logger.error(`Session destruction error: ${err.message}`);
-        }
-        
-        // Clear the cookie regardless
-        res.clearCookie('connect.sid');
-        
-        // Redirect with flash message
-        return res.render('auth/login', {
-          messages: { success: ['Logged out successfully'] }
-        });
-      });
-    });
-  } catch (error) {
-    logger.error(`Logout error: ${error.message}`);
-    req.flash('error', 'Error logging out');
-    return res.render('auth/login', {
-      messages: req.flash()
-    });
-  }
-};
+      // Generate reset token
+      const resetToken = user.generatePasswordResetToken();
+      await user.save();
+      
+      // Create reset URL
+      const resetUrl = `${process.env.BASE_URL}/password-reset/${resetToken}`;
+      
+      // Send password reset email
+      await emailService.sendEmailWithTemplate(
+        user.email,
+        'Reset Your Password',
+        'password_reset',
+        { user, resetToken, resetUrl }
+      );
+      
+      req.flash('success_msg', 'An email has been sent with instructions to reset your password');
+      res.redirect('/login');
+    } catch (err) {
+      console.error('Password reset request error:', err);
+      req.flash('error_msg', 'An error occurred during password reset request');
+      res.redirect('/password-reset');
+    }
+  },
+  
+  // Show password reset form
+  getPasswordResetForm: async (req, res) => {
+    try {
+      const { token } = req.params;
 
-/**
- * Verify email
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.verifyEmail = async (req, res) => {
-  try {
-    const { token, code } = req.body;
-    
-    // Find user by verification token
-    const user = await User.findOne({ where: { verification_token: token } });
-    
-    if (!user) {
-      req.flash('error', 'Invalid verification token');
-      return res.render('auth/verify-email', {
-        messages: req.flash()
-      });
-    }
-    
-    // Validate OTP
-    const isValidOTP = await otpService.validateOTP(code, 'verification', user.id);
-    
-    if (!isValidOTP) {
-      req.flash('error', 'Invalid verification code');
-      return res.render('auth/verify-email', {
-        messages: req.flash()
-      });
-    }
-    
-    // Update user
-    await user.update({
-      is_verified: true,
-      verification_token: null,
-      status: 'active'
-    });
-    
-    // Return success response
-    req.flash('success', 'Email verified successfully');
-    return res.render('auth/login', {
-      messages: req.flash()
-    });
-  } catch (error) {
-    logger.error(`Email verification error: ${error.message}`);
-    req.flash('error', 'Email verification failed');
-    return res.render('auth/verify-email', {
-      messages: req.flash()
-    });
-  }
-};
-
-/**
- * Resend verification email
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.resendVerification = async (req, res) => {
-  try {
-    const { email } = req.body;
-    
-    // Find user by email
-    const user = await User.findOne({ where: { email } });
-    
-    if (!user) {
-      req.flash('error', 'User not found');
-      return res.render('auth/register', {
-        messages: req.flash()
-      });
-    }
-    
-    // Check if already verified
-    if (user.is_verified) {
-      req.flash('error', 'Email already verified');
-      return res.render('auth/login', {
-        messages: req.flash()
-      });
-    }
-    
-    // Generate new verification token
-    const verificationToken = security.generateRandomToken();
-    
-    // Update user
-    await user.update({
-      verification_token: verificationToken
-    });
-    
-    // Generate OTP for verification
-    const otp = await otpService.generateOTP(user.id, 'verification');
-    
-    // Send verification email
-    await emailService.sendVerificationEmail(email, {
-      code: otp.code,
-      name: `${user.first_name} ${user.last_name}`,
-      verificationUrl: `${process.env.APP_URL}/verify-email?token=${verificationToken}`
-    });
-    
-    // Send verification via WhatsApp if phone is provided
-    if (user.phone) {
-      try {
-        await whatsappService.sendOTP(user.phone, otp.code, 'verification');
-      } catch (error) {
-        // Just log the error, don't fail the request
-        logger.error(`Failed to send WhatsApp verification: ${error.message}`);
-      }
-    }
-    
-    // Return success response
-    req.flash('success', 'Verification email sent successfully');
-    return res.render('auth/login', {
-      messages: req.flash()
-    });
-  } catch (error) {
-    logger.error(`Resend verification error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to resend verification email'
-    });
-  }
-};
-
-/**
- * Request password reset
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    
-    // Find user by email
-    const user = await User.findOne({ where: { email } });
-    
-    if (!user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
-      });
-    }
-    
-    // Generate reset token
-    const resetToken = security.generateRandomToken();
-    const resetExpires = new Date();
-    resetExpires.setHours(resetExpires.getHours() + 1); // Token expires in 1 hour
-    
-    // Update user
-    await user.update({
-      reset_token: resetToken,
-      reset_token_expires: resetExpires
-    });
-    
-    // Generate OTP for password reset
-    const otp = await otpService.generateOTP(user.id, 'reset_password');
-    
-    // Send reset email
-    await emailService.sendPasswordResetEmail(email, {
-      code: otp.code,
-      name: `${user.first_name} ${user.last_name}`,
-      resetUrl: `${process.env.APP_URL}/reset-password?token=${resetToken}`
-    });
-    
-    // Send OTP via WhatsApp if phone is provided
-    if (user.phone) {
-      try {
-        await whatsappService.sendOTP(user.phone, otp.code, 'reset_password');
-      } catch (error) {
-        // Just log the error, don't fail the request
-        logger.error(`Failed to send WhatsApp reset OTP: ${error.message}`);
-      }
-    }
-    
-    // Return success response
-    req.flash('success', 'Password reset instructions sent to your email');
-    return res.render('auth/login', {
-      messages: req.flash()
-    });
-  } catch (error) {
-    logger.error(`Forgot password error: ${error.message}`);
-    req.flash('error', 'Password reset request failed');
-    return res.render('auth/forgot-password', {
-      messages: req.flash()
-    });
-  }
-};
-
-/**
- * Reset password
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.resetPassword = async (req, res) => {
-  try {
-    const { token, code, password } = req.body;
-    
-    // Find user by reset token
-    const user = await User.findOne({
-      where: {
-        reset_token: token,
-        reset_token_expires: {
-          [db.Sequelize.Op.gt]: new Date() // Token not expired
-        }
-      }
-    });
-    
-    if (!user) {
-      req.flash('error', 'Invalid or expired reset token');
-      return res.render('auth/forgot-password', {
-        messages: req.flash(),
-      });
-    }
-    
-    // Validate OTP
-    const isValidOTP = await otpService.validateOTP(code, 'reset_password', user.id);
-    
-    if (!isValidOTP) {
-      req.flash('error', 'Invalid reset code');
-      return res.render('auth/forgot-password', {
-        messages: req.flash(),
-      });
-    }
-    
-    // Hash new password
-    const hashedPassword = await security.hashPassword(password);
-    
-    // Update user
-    await user.update({
-      password: hashedPassword,
-      reset_token: null,
-      reset_token_expires: null
-    });
-    
-    // Return success response
-    req.flash('success', 'Password reset successful');
-    return res.render('auth/login', {
-      messages: req.flash()
-    });
-  } catch (error) {
-    logger.error(`Reset password error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Server 500! Password reset failed'
-    });
-  }
-};
-
-/**
- * Change password
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.changePassword = async (req, res) => {
-  try {
-    const { current_password, new_password, confirm_password } = req.body;
-    const userId = req.user.id;
-    
-    // Validate that new password and confirmation match
-    if (new_password !== confirm_password) {
-      req.flash('error', 'New password and confirmation do not match');
-      return res.render('users/profile', {
-        messages: req.flash()
-      });
-    }
-    
-    // Get user
-    const user = await User.findByPk(userId);
-    
-    if (!user) {
-      req.flash('error', 'User Not Found');
-      return res.render('auth/login', {
-        messages: req.flash()
-      });
-    }
-    
-    // Verify current password
-    const isMatch = await security.comparePassword(current_password, user.password);
-    
-    if (!isMatch) {
-      req.flash('error', 'Current password is incorrect');
-      return res.render('users/profile', {
-        messages: req.flash()
-      });
-    }
-    
-    // Hash new password
-    const hashedPassword = await security.hashPassword(new_password);
-    
-    // Update user
-    await user.update({
-      password: hashedPassword
-    });
-    
-    // Return success response
-    req.flash('success', 'Password changed successfully');
-    return res.render('users/profile', {
-      messages: req.flash()
-    });
-  } catch (error) {
-    logger.error(`Change password error: ${error.message}`);
-    res.status(500).json({
-      status: 'error',
-      message: 'Password change failed'
-    });
-  }
-};
-/**
- * Get user profile
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.getProfile = async (req, res) => {
-  try {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    console.log(baseUrl + req.originalUrl); 
-    const userId = req.user.id;
-    
-    // Get user with roles
-    const user = await User.findByPk(userId, {
-      attributes: { exclude: ['password', 'reset_token', 'reset_token_expires', 'verification_token'] },
-      include: [
-        {
-          model: Role,
-          through: { attributes: [] }
-        }
-      ]
-    });
-    
-    if (!user) {
-      req.flash('error', 'User not found');
-      return res.redirect('/login');
-    }
-    
-    res.render('users/profile', {
-      messages: req.flash()
-    });
-
-  } catch (error) {
-    logger.error(`Get profile error: ${error.message}`);
-    req.flash('error', '500! Something went wrong');
-    return res.redirect('/login');
-  }
-};
-
-/**
- * Update user profile
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>}
- */
-exports.updateProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { first_name, last_name, phone } = req.body;
-    
-    // Get user
-    const user = await User.findByPk(userId);
-    
-    if (!user) {
-      req.flash('error', 'User not found');
-      return res.redirect('/login');
-    }
-    
-    // Check if phone is already used by another user
-    if (phone && phone !== user.phone) {
-      const existingPhone = await User.findOne({
+      
+      
+      // Find user by reset token and check if token is valid
+      const user = await User.findOne({
         where: {
-          phone,
-          id: { [db.Sequelize.Op.ne]: userId }
+          resetPasswordToken: token,
+          resetPasswordExpires: { [Op.gt]: new Date() }
         }
       });
       
-      if (existingPhone) {
-        
-        req.flash('error', 'Phone number already in use');
-        return res.redirect('/profile');
+      if (!user) {
+        req.flash('error_msg', 'Password reset token is invalid or has expired');
+        return res.redirect('/password-reset');
       }
+      
+      res.render('auth/createpw', {
+        title: 'Reset Password',
+        token
+      });
+    } catch (err) {
+      console.error('Password reset form error:', err);
+      req.flash('error_msg', 'An error occurred');
+      res.redirect('/password-reset');
     }
-    
-    // Prepare update data
-    const updateData = {};
-    
-    if (first_name) updateData.first_name = first_name;
-    if (last_name) updateData.last_name = last_name;
-    if (phone) updateData.phone = phone;
-    
-    // Handle profile image upload
-    if (req.file) {
-      const filePath = req.file.path.replace(/^public[\/\\]/, '').replace(/\\/g, '/');
-      updateData.profile_image = filePath;
+  },
+  
+  // Handle password reset
+  postPasswordResetForm: async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { password, password2 } = req.body;
+      
+      // Validate passwords
+      if (password !== password2) {
+        req.flash('error_msg', 'Passwords do not match');
+        return res.redirect(`/password-reset/${token}`);
+      }
+      
+      // Find user by reset token and check if token is valid
+      const user = await User.findOne({
+        where: {
+          resetPasswordToken: token,
+          resetPasswordExpires: { [Op.gt]: new Date() }
+        }
+      });
+      
+      if (!user) {
+        req.flash('error_msg', 'Password reset token is invalid or has expired');
+        return res.redirect('/password-reset');
+      }
+      
+      // Update password and clear reset token
+      await user.update({
+        password: password, // This will be hashed by User model hook
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      });
+      
+      req.flash('success_msg', 'Your password has been updated successfully. You can now log in with your new password');
+      res.redirect('/login');
+    } catch (err) {
+      console.error('Password reset error:', err);
+      req.flash('error_msg', 'An error occurred during password reset');
+      res.redirect('/password-reset');
     }
-    
-    // Update user
-    await user.update(updateData);
-    
-    // Return updated user
-    req.flash('success', 'Profile Update successful.');
-    return res.render('users/profile', {
-      messages: req.flash()
-    });
-
-
-  } catch (error) {
-    logger.error(`Update profile error: ${error.message}`);
-
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to update profile'
-    });
   }
 };

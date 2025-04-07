@@ -1,101 +1,76 @@
-/**
- * Authentication Routes
- */
 const express = require('express');
 const router = express.Router();
+const { check } = require('express-validator');
 const authController = require('../controllers/authController');
-const { ensureAuthenticated, ensureNotAuthenticated } = require('../middlewares/auth');
-const validators = require('../utils/validators');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const { ensureAuthenticated, forwardAuthenticated, ensureAdmin } = require('../middleware/auth');
 
-// Ensure upload directory exists
-const profileUploadDir = 'public/uploads/profiles';
-if (!fs.existsSync(profileUploadDir)){
-  fs.mkdirSync(profileUploadDir, { recursive: true });
-}
+// Public landing page
+router.get('/', (req, res) => {
+  res.render('index', { title: 'Event Management System' });
+});
 
-// Configure multer for profile image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, profileUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-    const ext = file.originalname.split('.').pop();
-    cb(null, `profile-${req.user.id}-${uniqueSuffix}.${ext}`);
+// Login page
+router.get('/login', forwardAuthenticated, authController.getLogin);
+
+// Login submit
+router.post('/login', forwardAuthenticated, authController.postLogin);
+
+// Register page
+router.get('/register', forwardAuthenticated, authController.getRegister);
+
+// Register submit
+router.post('/register', forwardAuthenticated, [
+  check('name', 'Name is required').notEmpty(),
+  check('email', 'Please include a valid email').isEmail(),
+  check('password', 'Password must be at least 6 characters').isLength({ min: 6 }),
+  check('password2', 'Passwords do not match').custom((value, { req }) => value === req.body.password)
+], authController.postRegister);
+
+// Email verification
+router.get('/verify-email/:token', authController.verifyEmail);
+
+router.get('/resend-verification-link/:email', authController.resendVerification);
+
+// Password reset request form
+router.get('/password-reset', forwardAuthenticated, authController.getPasswordReset);
+
+// Password reset request submit
+router.post('/password-reset', forwardAuthenticated, [
+  check('email', 'Please include a valid email').isEmail()
+], authController.postPasswordReset);
+
+// Password reset form
+router.get('/password-reset/:token', forwardAuthenticated, authController.getPasswordResetForm);
+
+// Password reset submit
+router.post('/password-create/:token', forwardAuthenticated, [
+  check('password', 'Password must be at least 6 characters').isLength({ min: 6 }),
+  check('password2', 'Passwords do not match').custom((value, { req }) => value === req.body.password)
+], authController.postPasswordResetForm);
+
+// Logout
+router.get('/logout', authController.logout);
+
+// Dashboard redirect based on role
+router.get('/dashboard', ensureAuthenticated, authController.getDashboard);
+
+// Admin dashboard
+router.get('/dashboard/admin', ensureAdmin, (req, res) => {
+  res.render('dashboard/admin', { title: 'Admin Dashboard' });
+});
+
+// Organizer dashboard
+router.get('/dashboard/organizer', ensureAuthenticated, (req, res) => {
+  if (req.user.role !== 'organizer' && req.user.role !== 'super_admin') {
+    req.flash('error_msg', 'You are not authorized to access this page');
+    return res.redirect('/dashboard');
   }
+  res.render('dashboard/organizer', { title: 'Organizer Dashboard' });
 });
 
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
-
-// Public routes
-router.post('/register', authController.register);
-router.post('/login', validators.loginRules, validators.validate, authController.login);
-router.post('/verify-email', authController.verifyEmail);
-router.post('/resend-verification', authController.resendVerification);
-router.post('/forgot-password', validators.resetPasswordRequestRules, validators.validate, authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
-
-// Protected routes
-router.post('/logout', ensureAuthenticated, authController.logout);
-router.get('/profile', ensureAuthenticated, authController.getProfile);
-router.post('/profile', ensureAuthenticated, upload.single('profile_image'), validators.validate, authController.updateProfile);
-router.post('/change-password', ensureAuthenticated, authController.changePassword);
-
-// Web routes
-router.get('/login', ensureNotAuthenticated, (req, res) => {
-  res.render('auth/login', { title: 'Login' });
-});
-
-router.get('/register', ensureNotAuthenticated, (req, res) => {
-  res.render('auth/register', { title: 'Register' });
-});
-
-router.get('/forgot-password', ensureNotAuthenticated, (req, res) => {
-  res.render('auth/forgot-password', { title: 'Forgot Password' });
-});
-
-router.get('/reset-password', ensureNotAuthenticated, (req, res) => {
-  const { token } = req.query;
-  if (!token) {
-    req.flash('error_msg', 'Invalid reset token');
-    return res.redirect('/login');
-  }
-  res.render('auth/reset-password', { title: 'Reset Password', token });
-});
-
-router.get('/verify-email', (req, res) => {
-  const { token } = req.query;
-  if (!token) {
-    req.flash('error_msg', 'Invalid verification token');
-    return res.redirect('/login');
-  }
-  res.render('auth/verify-email', { title: 'Verify Email', token });
-});
-router.get('/resend-verification', (req, res) => {
-  res.render('auth/resend-verification', { title: 'Resend Verification Email' });
-});
-
-// Dashboard route
-router.get('/dashboard', ensureAuthenticated, (req, res) => {
-  res.render('dashboard/index', { 
-    title: 'Dashboard',
-    user: req.user,
-  });
+// Attendee dashboard
+router.get('/dashboard/attendee', ensureAuthenticated, (req, res) => {
+  res.render('dashboard/attendee', { title: 'Attendee Dashboard' });
 });
 
 module.exports = router;

@@ -1,131 +1,136 @@
-/**
- * Email service
- */
-const nodemailer = require('nodemailer');
 const emailConfig = require('../config/email');
-const logger = require('../utils/logger');
+const moment = require('moment');
+const path = require('path');
+const fs = require('fs');
+const ejs = require('ejs');
 
-class EmailService {
-  constructor() {
-    // Create transporter with SMTP config
-    this.transporter = nodemailer.createTransport(emailConfig.smtp);
-    
-    // Verify connection
-    this.transporter.verify((error) => {
-      if (error) {
-        logger.error(`Email service error: ${error.message}`);
-      } else {
-        logger.info('Email service is ready to send messages');
-      }
-    });
+// Templates directory
+const templatesDir = path.join(__dirname, '../views/emails');
+
+// Load email template and compile with EJS
+const renderTemplate = async (templateName, data) => {
+  try {
+    const templatePath = path.join(templatesDir, `${templateName}.ejs`);
+    const template = fs.readFileSync(templatePath, 'utf-8');
+    return ejs.render(template, { ...data, moment });
+  } catch (error) {
+    console.error(`Error rendering email template ${templateName}:`, error);
+    return null;
   }
-  
-  /**
-   * Send an email
-   * @param {string} to - Recipient email
-   * @param {string} subject - Email subject
-   * @param {string} template - Template name
-   * @param {object} [data={}] - Template data
-   * @returns {Promise<object>} - Send result
-   */
-  async sendEmail(to, subject, template, data = {}) {
+};
+
+const emailService = {
+  // Send email with template
+  sendEmailWithTemplate: async (to, subject, templateName, data, attachments = []) => {
     try {
-      // Get template from config
-      const templateConfig = emailConfig.templates[template] || {
-        text: 'No template found',
-        html: '<p>No template found</p>'
-      };
+      const html = await renderTemplate(templateName, data);
       
-      // Replace placeholders in template with data
-      let text = templateConfig.text;
-      let html = templateConfig.html;
+      if (!html) {
+        throw new Error(`Failed to render template: ${templateName}`);
+      }
       
-      // Replace placeholders with data values
-      Object.keys(data).forEach((key) => {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        text = text.replace(regex, data[key]);
-        html = html.replace(regex, data[key]);
-      });
-      
-      // Prepare email options
-      const mailOptions = {
-        from: emailConfig.from,
-        to,
-        subject: subject || templateConfig.subject,
-        text,
-        html
-      };
-      
-      // Send email
-      const info = await this.transporter.sendMail(mailOptions);
-      logger.info(`Email sent: ${info.messageId}`);
-      return info;
+      return await emailConfig.sendEmail(to, subject, html, attachments);
     } catch (error) {
-      logger.error(`Error sending email: ${error.message}`);
-      throw error;
+      console.error('Error sending email with template:', error);
+      return { success: false, error: error.message };
     }
-  }
+  },
   
-  /**
-   * Send welcome email
-   * @param {string} to - Recipient email
-   * @param {object} data - Email data
-   * @returns {Promise<object>} - Send result
-   */
-  async sendWelcomeEmail(to, data) {
-    return this.sendEmail(
-      to,
-      'Welcome to Event Management System',
-      'welcome',
-      data
+  // Send welcome email
+  sendWelcomeEmail: async (user) => {
+    const subject = 'Welcome to Event Management System';
+    return await emailService.sendEmailWithTemplate(
+      user.email,
+      subject,
+      emailConfig.templates.welcome,
+      { user }
+    );
+  },
+  
+  // Send ticket confirmation
+  sendTicketConfirmation: async (user, ticket, event, ticketType) => {
+    const subject = `Ticket Confirmation - ${event.title}`;
+    
+    // Prepare QR code attachment if available
+    const attachments = [];
+    if (ticket.qrCode) {
+      attachments.push({
+        filename: `ticket-${ticket.ticketNumber}.png`,
+        content: ticket.qrCode.split('base64,')[1],
+        encoding: 'base64',
+        contentType: 'image/png',
+        cid: 'qr-code' // This ID can be referenced in the email template
+      });
+    }
+    
+    return await emailService.sendEmailWithTemplate(
+      user.email,
+      subject,
+      emailConfig.templates.ticketConfirmation,
+      { user, ticket, event, ticketType },
+      attachments
+    );
+  },
+  
+  // Send payment confirmation
+  sendPaymentConfirmation: async (user, payment, ticket, event) => {
+    const subject = `Payment Confirmation - ${event.title}`;
+    
+    return await emailService.sendEmailWithTemplate(
+      user.email,
+      subject,
+      emailConfig.templates.paymentConfirmation,
+      { user, payment, ticket, event }
+    );
+  },
+  
+  // Send password reset email
+  sendPasswordResetEmail: async (user, resetToken, resetUrl) => {
+    const subject = 'Reset Your Password';
+    
+    return await emailService.sendEmailWithTemplate(
+      user.email,
+      subject,
+      emailConfig.templates.passwordReset,
+      { user, resetToken, resetUrl }
+    );
+  },
+  
+  // Send event reminder
+  sendEventReminder: async (user, event, ticket) => {
+    const subject = `Reminder: ${event.title} is Tomorrow!`;
+    
+    return await emailService.sendEmailWithTemplate(
+      user.email,
+      subject,
+      emailConfig.templates.eventReminder,
+      { user, event, ticket }
+    );
+  },
+  
+  // Send refund confirmation
+  sendRefundConfirmation: async (user, payment, ticket, event) => {
+    const subject = `Refund Confirmation - ${event.title}`;
+    
+    return await emailService.sendEmailWithTemplate(
+      user.email,
+      subject,
+      emailConfig.templates.refundConfirmation,
+      { user, payment, ticket, event }
+    );
+  },
+  
+  // Send referral invitation
+  sendReferralInvitation: async (user, recipientEmail, referralCode, referralUrl) => {
+    const subject = `${user.name} invites you to join Event Management System`;
+    
+    return await emailService.sendEmailWithTemplate(
+      recipientEmail,
+      subject,
+      emailConfig.templates.referralInvitation,
+      { user, referralCode, referralUrl }
     );
   }
-  
-  /**
-   * Send password reset email
-   * @param {string} to - Recipient email
-   * @param {object} data - Email data
-   * @returns {Promise<object>} - Send result
-   */
-  async sendPasswordResetEmail(to, data) {
-    return this.sendEmail(
-      to,
-      'Reset Your Password',
-      'reset_password_otp',
-      data
-    );
-  }
-  
-  /**
-   * Send verification code email
-   * @param {string} to - Recipient email
-   * @param {object} data - Email data
-   * @returns {Promise<object>} - Send result
-   */
-  async sendVerificationEmail(to, data) {
-    return this.sendEmail(
-      to,
-      'Verify Your Email Address',
-      'verification_otp',
-      data
-    );
-  }
-  
-  /**
-   * Send ticket confirmation email
-   * @param {string} to - Recipient email
-   * @param {object} data - Email data
-   * @returns {Promise<object>} - Send result
-   */
-  async sendTicketConfirmationEmail(to, data) {
-    return this.sendEmail(
-      to,
-      'Your Ticket Confirmation',
-      'ticket_confirmation',
-      data
-    );
-  }
-}
+};
 
-// Export singleton instance
-module.exports = new EmailService();
+module.exports = emailService;
