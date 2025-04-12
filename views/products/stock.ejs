@@ -1,0 +1,196 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Stock Management - <%= product.name %></h1>
+    <a href="/products/<%= product.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Product
+    </a>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Update Stock</h5>
+        </div>
+        <div class="card-body">
+          <form action="/products/<%= product.id %>/stock/update" method="POST">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="type" class="form-label">Transaction Type</label>
+                <select class="form-select" id="type" name="type" required>
+                  <option value="In">Stock In</option>
+                  <option value="Out">Stock Out</option>
+                </select>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="quantity" class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+              </div>
+            </div>
+            
+            <div class="row" id="stockInFields">
+              <div class="col-md-6 mb-3">
+                <label for="supplierId" class="form-label">Supplier (Optional)</label>
+                <select class="form-select" id="supplierId" name="supplierId">
+                  <option value="">Select Supplier</option>
+                  <% suppliers.forEach(supplier => { %>
+                    <option value="<%= supplier.id %>"><%= supplier.name %></option>
+                  <% }); %>
+                </select>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="price" class="form-label">Purchase Price (per unit)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" value="<%= product.costPrice %>">
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="note" class="form-label">Note</label>
+              <textarea class="form-control" id="note" name="note" rows="2"></textarea>
+            </div>
+            
+            <% if (product.variants && product.variants.length > 0) { %>
+              <div class="mb-3">
+                <label for="variantId" class="form-label">Product Variant (Optional)</label>
+                <select class="form-select" id="variantId" name="variantId">
+                  <option value="">Main Product (No Variant)</option>
+                  <% product.variants.forEach(variant => { %>
+                    <option value="<%= variant.id %>"><%= (variant.size ? variant.size + ' / ' : '') + (variant.color ? variant.color : 'Standard') %> (SKU: <%= variant.variantSku %>)</option>
+                  <% }); %>
+                </select>
+              </div>
+            <% } %>
+            
+            <div class="alert alert-info mb-3" id="stockSummary">
+              <div class="d-flex justify-content-between">
+                <strong>Current Stock:</strong>
+                <span><%= product.currentStock %></span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <strong>New Stock After Transaction:</strong>
+                <span id="newStockValue"><%= product.currentStock %></span>
+              </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="/products/<%= product.id %>" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Update Stock</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Product Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <% if (product.image) { %>
+              <img src="<%= product.image %>" alt="<%= product.name %>" class="img-thumbnail me-3" style="width: 60px; height: 60px; object-fit: cover;">
+            <% } else { %>
+              <div class="bg-light d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                <i class="fas fa-box text-muted"></i>
+              </div>
+            <% } %>
+            <div>
+              <h6 class="mb-0"><%= product.name %></h6>
+              <small class="text-muted">SKU: <%= product.sku %></small>
+            </div>
+          </div>
+          
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Current Stock
+              <span class="<%= product.currentStock <= product.minimumStock ? 'text-danger' : '' %>">
+                <%= product.currentStock %> <%= product.currentStock <= product.minimumStock ? '<i class="fas fa-exclamation-triangle text-danger" title="Low Stock"></i>' : '' %>
+              </span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Minimum Stock
+              <span><%= product.minimumStock %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Cost Price
+              <span>$<%= product.costPrice %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Selling Price
+              <span>$<%= product.sellingPrice %></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <% if (product.variants && product.variants.length > 0) { %>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Variant Stock Levels</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <% product.variants.forEach(variant => { %>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <%= (variant.size ? variant.size + ' / ' : '') + (variant.color ? variant.color : 'Standard') %>
+                  <span><%= variant.stock %></span>
+                </li>
+              <% }); %>
+            </ul>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const typeSelect = document.getElementById('type');
+      const quantityInput = document.getElementById('quantity');
+      const stockInFields = document.getElementById('stockInFields');
+      const newStockValue = document.getElementById('newStockValue');
+      const currentStock = <%= product.currentStock %>;
+      
+      // Handle transaction type change
+      typeSelect.addEventListener('change', function() {
+        if (this.value === 'In') {
+          stockInFields.style.display = 'flex';
+        } else {
+          stockInFields.style.display = 'none';
+        }
+        updateStockSummary();
+      });
+      
+      // Handle quantity change
+      quantityInput.addEventListener('input', function() {
+        updateStockSummary();
+      });
+      
+      // Update stock summary
+      function updateStockSummary() {
+        const quantity = parseInt(quantityInput.value) || 0;
+        const type = typeSelect.value;
+        
+        let newStock = currentStock;
+        if (type === 'In') {
+          newStock += quantity;
+        } else {
+          newStock -= quantity;
+          if (newStock < 0) {
+            newStock = 0;
+            quantityInput.value = currentStock;
+          }
+        }
+        
+        newStockValue.textContent = newStock;
+      }
+      
+      // Initialize
+      updateStockSummary();
+    });
+  </script>

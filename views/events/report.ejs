@@ -1,0 +1,213 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Event Report - <%= event.title %></h1>
+    <a href="/events/<%= event.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Event
+    </a>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Event Summary</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Status
+              <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : (event.status === 'Upcoming' ? 'primary' : 'secondary') %>">
+                <%= event.status %>
+              </span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Category
+              <span><%= event.category ? event.category.name : 'N/A' %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Date
+              <span><%= dateFormatter.formatDate(event.startDate) %> - <%= dateFormatter.formatDate(event.endDate) %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Venue
+              <span><%= event.venue %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Total Revenue
+              <span class="badge bg-success">$<%= totalRevenue %></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">Booking Statistics</h5>
+        </div>
+        <div class="card-body">
+          <% if (bookingStats && bookingStats.length > 0) { %>
+            <ul class="list-group list-group-flush">
+              <% 
+                let confirmedCount = 0;
+                let pendingCount = 0;
+                let cancelledCount = 0;
+                
+                bookingStats.forEach(stat => {
+                  if (stat.dataValues.status === 'Confirmed') {
+                    confirmedCount = parseInt(stat.dataValues.count);
+                  } else if (stat.dataValues.status === 'Pending') {
+                    pendingCount = parseInt(stat.dataValues.count);
+                  } else if (stat.dataValues.status === 'Cancelled') {
+                    cancelledCount = parseInt(stat.dataValues.count);
+                  }
+                });
+                
+                const totalCount = confirmedCount + pendingCount + cancelledCount;
+              %>
+              
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Confirmed Bookings
+                <span class="badge bg-success rounded-pill"><%= confirmedCount %></span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Pending Bookings
+                <span class="badge bg-warning rounded-pill"><%= pendingCount %></span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Cancelled Bookings
+                <span class="badge bg-danger rounded-pill"><%= cancelledCount %></span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Total Bookings
+                <span class="badge bg-primary rounded-pill"><%= totalCount %></span>
+              </li>
+            </ul>
+          <% } else { %>
+            <div class="alert alert-info">No booking data available.</div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">Ticket Sales</h5>
+        </div>
+        <div class="card-body">
+          <% if (ticketSales && ticketSales.length > 0) { %>
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered">
+                <thead class="table-light">
+                  <tr>
+                    <th>Ticket Type</th>
+                    <th>Price</th>
+                    <th>Sold</th>
+                    <th>Total</th>
+                    <th>Sold %</th>
+                    <th>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% ticketSales.forEach(ticket => { %>
+                    <tr>
+                      <td><%= ticket.ticket.type %></td>
+                      <td>$<%= ticket.ticket.price %></td>
+                      <td><%= ticket.sold %></td>
+                      <td><%= ticket.total %></td>
+                      <td>
+                        <div class="progress" style="height: 20px;">
+                          <div class="progress-bar bg-success" role="progressbar" style="width: <%= ticket.soldPercentage %>%;" aria-valuenow="<%= ticket.soldPercentage %>" aria-valuemin="0" aria-valuemax="100">
+                            <%= Math.round(ticket.soldPercentage) %>%
+                          </div>
+                        </div>
+                      </td>
+                      <td>$<%= ticket.revenue %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+                <tfoot class="table-secondary">
+                  <tr>
+                    <th colspan="2">Total</th>
+                    <td>
+                      <%= ticketSales.reduce((sum, ticket) => sum + ticket.sold, 0) %>
+                    </td>
+                    <td>
+                      <%= ticketSales.reduce((sum, ticket) => sum + ticket.total, 0) %>
+                    </td>
+                    <td>
+                      <%= Math.round(ticketSales.reduce((sum, ticket) => sum + ticket.sold, 0) / ticketSales.reduce((sum, ticket) => sum + ticket.total, 0) * 100) %>%
+                    </td>
+                    <td>$<%= totalRevenue %></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            
+            <div class="row">
+              <% ticketSales.forEach(ticket => { %>
+                <div class="col-md-6 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <h5 class="card-title"><%= ticket.ticket.type %></h5>
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Sold: <%= ticket.sold %> / <%= ticket.total %></span>
+                        <span class="badge bg-<%= ticket.soldPercentage >= 75 ? 'success' : (ticket.soldPercentage >= 50 ? 'primary' : 'secondary') %>">
+                          <%= Math.round(ticket.soldPercentage) %>%
+                        </span>
+                      </div>
+                      <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: <%= ticket.soldPercentage %>%;" aria-valuenow="<%= ticket.soldPercentage %>" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center">
+                        <span>Price: $<%= ticket.ticket.price %></span>
+                        <span>Revenue: $<%= ticket.revenue %></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <div class="alert alert-info">No ticket sales data available.</div>
+          <% } %>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="d-grid">
+                <a href="/bookings/admin/all?eventId=<%= event.id %>" class="btn btn-outline-primary">
+                  <i class="fas fa-ticket-alt me-1"></i> View All Bookings
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-grid">
+                <a href="/reports/event-performance/<%= event.id %>" class="btn btn-outline-success">
+                  <i class="fas fa-chart-line me-1"></i> Detailed Performance
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-grid">
+                <button class="btn btn-outline-info" onclick="printReport()">
+                  <i class="fas fa-print me-1"></i> Print Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function printReport() {
+      window.print();
+    }
+  </script>

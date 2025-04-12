@@ -1,0 +1,161 @@
+<div class="row mb-4">
+    <div class="col-lg-8">
+      <h1 class="mb-4">Welcome, <%= user.fullName %></h1>
+      
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">My Upcoming Bookings</h5>
+              <% if (bookings && bookings.length > 0) { %>
+                <div class="list-group list-group-flush">
+                  <% bookings.forEach(booking => { %>
+                    <div class="list-group-item list-group-item-action">
+                      <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1"><%= booking.event.title %></h6>
+                        <small>
+                          <span class="badge bg-<%= booking.status === 'Confirmed' ? 'success' : (booking.status === 'Pending' ? 'warning' : 'danger') %>">
+                            <%= booking.status %>
+                          </span>
+                        </small>
+                      </div>
+                      <p class="mb-1">
+                        <%= booking.quantity %> x <%= booking.ticket.type %> 
+                        ($<%= booking.totalAmount %>)
+                      </p>
+                      <small class="text-muted">
+                        <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDate(booking.event.startDate) %>
+                      </small>
+                      <div class="mt-2">
+                        <a href="/bookings/<%= booking.id %>" class="btn btn-sm btn-outline-primary">View Details</a>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+                <div class="mt-3">
+                  <a href="/bookings" class="btn btn-primary btn-sm">View All Bookings</a>
+                </div>
+              <% } else { %>
+                <div class="alert alert-info">
+                  You don't have any bookings yet.
+                  <a href="/events" class="alert-link">Browse events</a> to make your first booking!
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">Upcoming Events</h5>
+              <% if (upcomingEvents && upcomingEvents.length > 0) { %>
+                <div class="list-group list-group-flush">
+                  <% upcomingEvents.forEach(event => { %>
+                    <div class="list-group-item list-group-item-action">
+                      <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1"><%= event.title %></h6>
+                        <small>
+                          <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : 'primary' %>">
+                            <%= event.status %>
+                          </span>
+                        </small>
+                      </div>
+                      <p class="mb-1"><i class="fas fa-map-marker-alt"></i> <%= event.venue %></p>
+                      <small class="text-muted">
+                        <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDate(event.startDate) %>
+                      </small>
+                      <div class="mt-2">
+                        <a href="/events/<%= event.id %>" class="btn btn-sm btn-outline-primary">View Details</a>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+                <div class="mt-3">
+                  <a href="/events" class="btn btn-primary btn-sm">Browse All Events</a>
+                </div>
+              <% } else { %>
+                <div class="alert alert-info">No upcoming events at the moment.</div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="/events" class="btn btn-outline-primary">
+              <i class="fas fa-calendar-alt me-2"></i> Browse Events
+            </a>
+            <a href="/bookings" class="btn btn-outline-primary">
+              <i class="fas fa-ticket-alt me-2"></i> My Bookings
+            </a>
+            <a href="/users/profile" class="btn btn-outline-primary">
+              <i class="fas fa-user-circle me-2"></i> My Profile
+            </a>
+            <a href="/users/referral" class="btn btn-outline-primary">
+              <i class="fas fa-share-alt me-2"></i> My Referrals
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <% if (referralStats) { %>
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">My Referral Program</h5>
+          </div>
+          <div class="card-body">
+            <div class="text-center mb-3">
+              <div class="card bg-light p-3 mb-3">
+                <h2 class="mb-0"><%= referralStats.code %></h2>
+                <p class="text-muted mb-0">Your Referral Code</p>
+              </div>
+              <button class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('<%= referralStats.code %>')">
+                <i class="fas fa-copy me-1"></i> Copy Code
+              </button>
+            </div>
+            
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Commission Rate
+                <span class="badge bg-primary rounded-pill"><%= referralStats.commissionPercentage %>%</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Total Earnings
+                <span class="badge bg-success rounded-pill">$<%= referralStats.totalEarnings %></span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Successful Referrals
+                <span class="badge bg-info rounded-pill"><%= referralStats.usageCount %></span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Pending Referrals
+                <span class="badge bg-warning rounded-pill"><%= referralStats.pendingBookings %></span>
+              </li>
+            </ul>
+            
+            <div class="mt-3">
+              <a href="/users/referral" class="btn btn-success btn-sm w-100">View Referral Details</a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(function() {
+        alert('Referral code copied to clipboard!');
+      }, function(err) {
+        console.error('Could not copy text: ', err);
+      });
+    }
+  </script>

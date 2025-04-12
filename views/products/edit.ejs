@@ -1,0 +1,115 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Product</h1>
+    <a href="/products/<%= product.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Product
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <form action="/products/<%= product.id %>/update" method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label for="name" class="form-label">Product Name</label>
+              <input type="text" class="form-control" id="name" name="name" value="<%= product.name %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="3"><%= product.description %></textarea>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="categoryId" class="form-label">Category</label>
+                <select class="form-select" id="categoryId" name="categoryId" required>
+                  <option value="">Select Category</option>
+                  <% categories.forEach(category => { %>
+                    <option value="<%= category.id %>" <%= product.categoryId == category.id ? 'selected' : '' %>><%= category.name %></option>
+                  <% }); %>
+                </select>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="sku" class="form-label">SKU</label>
+                <input type="text" class="form-control" id="sku" value="<%= product.sku %>" disabled>
+                <div class="form-text">SKU cannot be changed after creation</div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="sellingPrice" class="form-label">Selling Price</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" id="sellingPrice" name="sellingPrice" step="0.01" min="0" value="<%= product.sellingPrice %>" required>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="minimumStock" class="form-label">Minimum Stock</label>
+                <input type="number" class="form-control" id="minimumStock" name="minimumStock" min="0" value="<%= product.minimumStock %>">
+                <div class="form-text">Alert when stock falls below this level</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="mb-3">
+              <label for="image" class="form-label">Product Image</label>
+              <input type="file" class="form-control" id="image" name="image" accept="image/*">
+              <div class="mt-2">
+                <% if (product.image) { %>
+                  <div id="currentImage" class="border rounded p-2 text-center">
+                    <img src="<%= product.image %>" alt="<%= product.name %>" class="img-fluid">
+                  </div>
+                <% } %>
+                <div id="imagePreview" class="border rounded p-2 text-center d-none mt-3">
+                  <p>New Image:</p>
+                  <img id="preview" src="#" alt="Preview" class="img-fluid">
+                </div>
+                <small class="form-text text-muted">Leave empty to keep current image</small>
+              </div>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isActive" name="isActive" <%= product.isActive ? 'checked' : '' %>>
+              <label class="form-check-label" for="isActive">Product is Active</label>
+              <div class="form-text">Inactive products won't be available for sale</div>
+            </div>
+            
+            <div class="card bg-light mb-3">
+              <div class="card-body">
+                <h6 class="card-title">Current Stock: <%= product.currentStock %></h6>
+                <p class="card-text small">To update product stock, use the <a href="/products/<%= product.id %>/stock">Stock Management</a> page.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="/products/<%= product.id %>" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Update Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('image').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          document.getElementById('preview').src = e.target.result;
+          document.getElementById('imagePreview').classList.remove('d-none');
+        }
+        
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('imagePreview').classList.add('d-none');
+      }
+    });
+  </script>

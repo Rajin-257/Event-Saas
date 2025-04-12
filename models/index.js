@@ -1,78 +1,88 @@
-// models/index.js
 const User = require('./User');
 const Event = require('./Event');
-const { Ticket, TicketType } = require('./Ticket');
-const CheckIn = require('./CheckIn');
-const { Coupon, CouponUsage } = require('./Coupon');
-const Payment = require('./Payment');
-const { Referral, CommissionPayout } = require('./referral');
-const Speaker = require('./Speaker');
+const EventCategory = require('./EventCategory');
+const Sponsor = require('./Sponsor');
+const Ticket = require('./Ticket');
+const Booking = require('./Booking');
+const Product = require('./Product');
+const ProductCategory = require('./ProductCategory');
+const ProductVariant = require('./ProductVariant');
+const Inventory = require('./Inventory');
+const Supplier = require('./Supplier');
+const Referral = require('./Referral');
+const Payout = require('./Payout');
 
-// ...association code...
-// CheckIn Association
-CheckIn.belongsTo(Ticket, { foreignKey: 'ticketId' });
-Ticket.hasOne(CheckIn, { foreignKey: 'ticketId' });
-
-CheckIn.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(CheckIn, { foreignKey: 'eventId' });
-
-CheckIn.belongsTo(User, { as: 'attendee', foreignKey: 'attendeeId' });
-CheckIn.belongsTo(User, { as: 'staff', foreignKey: 'checkedInBy' });
-
-// Cupon Associations
-Coupon.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(Coupon, { foreignKey: 'eventId' });
-
-Coupon.hasMany(CouponUsage, { foreignKey: 'couponId' });
-CouponUsage.belongsTo(Coupon, { foreignKey: 'couponId' });
+// User Associations
+User.hasMany(Booking, { foreignKey: 'userId', as: 'bookings' });
+User.hasOne(Referral, { foreignKey: 'userId', as: 'referral' });
+User.hasMany(Payout, { foreignKey: 'userId', as: 'payouts' });
+User.hasMany(Inventory, { foreignKey: 'recordedBy', as: 'inventoryRecords' });
+User.hasMany(Booking, { foreignKey: 'checkedInBy', as: 'checkedInBookings' });
+User.hasMany(Event, { foreignKey: 'createdBy', as: 'events' });
 
 // Event Associations
-Event.belongsTo(User, { as: 'organizer', foreignKey: 'organizerId' });
+Event.belongsTo(EventCategory, { foreignKey: 'categoryId', as: 'category' });
+Event.hasMany(Ticket, { foreignKey: 'eventId', as: 'tickets' });
+Event.hasMany(Sponsor, { foreignKey: 'eventId', as: 'sponsors' });
+Event.hasMany(Booking, { foreignKey: 'eventId', as: 'bookings' });
+Event.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
-// Payment Associations
-Payment.belongsTo(Ticket, { foreignKey: 'ticketId' });
-Ticket.hasOne(Payment, { foreignKey: 'ticketId' });
+// EventCategory Associations
+EventCategory.hasMany(Event, { foreignKey: 'categoryId', as: 'events' });
 
-Payment.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Payment, { foreignKey: 'userId' });
+// Sponsor Associations
+Sponsor.belongsTo(Event, { foreignKey: 'eventId', as: 'event' });
+
+// Ticket Associations
+Ticket.belongsTo(Event, { foreignKey: 'eventId', as: 'event' });
+Ticket.hasMany(Booking, { foreignKey: 'ticketId', as: 'bookings' });
+
+// Booking Associations
+Booking.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Booking.belongsTo(Event, { foreignKey: 'eventId', as: 'event' });
+Booking.belongsTo(Ticket, { foreignKey: 'ticketId', as: 'ticket' });
+Booking.belongsTo(User, { foreignKey: 'checkedInBy', as: 'checkedInByUser' });
+
+// Product Associations
+Product.belongsTo(ProductCategory, { foreignKey: 'categoryId', as: 'category' });
+Product.hasMany(ProductVariant, { foreignKey: 'productId', as: 'variants' });
+Product.hasMany(Inventory, { foreignKey: 'productId', as: 'inventoryRecords' });
+
+// ProductCategory Associations
+ProductCategory.hasMany(Product, { foreignKey: 'categoryId', as: 'products' });
+
+// ProductVariant Associations
+ProductVariant.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+ProductVariant.hasMany(Inventory, { foreignKey: 'variantId', as: 'inventoryRecords' });
+
+// Inventory Associations
+Inventory.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Inventory.belongsTo(ProductVariant, { foreignKey: 'variantId', as: 'variant' });
+Inventory.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'supplier' });
+Inventory.belongsTo(User, { foreignKey: 'recordedBy', as: 'recorder' });
+
+// Supplier Associations
+Supplier.hasMany(Inventory, { foreignKey: 'supplierId', as: 'inventoryRecords' });
 
 // Referral Associations
-Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId' });
-Referral.belongsTo(User, { as: 'referredUser', foreignKey: 'referredUserId' });
-Referral.belongsTo(Ticket, { foreignKey: 'ticketId' });
+Referral.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-CommissionPayout.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(CommissionPayout, { foreignKey: 'userId' });
-
-// Speaker Associations
-Speaker.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(Speaker, { foreignKey: 'eventId' });
-
-// Tickets Associations
-TicketType.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(TicketType, { foreignKey: 'eventId' });
-
-Ticket.belongsTo(TicketType, { foreignKey: 'ticketTypeId' });
-TicketType.hasMany(Ticket, { foreignKey: 'ticketTypeId' });
-
-Ticket.belongsTo(Event, { foreignKey: 'eventId' });
-Event.hasMany(Ticket, { foreignKey: 'eventId' });
-
-Ticket.belongsTo(User, { as: 'attendee', foreignKey: 'userId' });
-User.hasMany(Ticket, { foreignKey: 'userId' });
-
-Ticket.belongsTo(User, { as: 'referrer', foreignKey: 'referrerId' });
+// Payout Associations
+Payout.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Payout.belongsTo(User, { foreignKey: 'processedBy', as: 'processor' });
 
 module.exports = {
   User,
   Event,
+  EventCategory,
+  Sponsor,
   Ticket,
-  TicketType,
-  CheckIn,
-  Coupon,
-  CouponUsage,
-  Payment,
+  Booking,
+  Product,
+  ProductCategory,
+  ProductVariant,
+  Inventory,
+  Supplier,
   Referral,
-  CommissionPayout,
-  Speaker
+  Payout
 };

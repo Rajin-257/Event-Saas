@@ -1,0 +1,152 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Tickets - <%= event.title %></h1>
+    <div>
+      <a href="/events/<%= event.id %>" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-1"></i> Back to Event
+      </a>
+      <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+        <a href="/tickets/event/<%= event.id %>/create" class="btn btn-primary">
+          <i class="fas fa-plus-circle me-1"></i> Add Ticket
+        </a>
+      <% } %>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <% if (tickets && tickets.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Sold</th>
+                <th>Available</th>
+                <th>Sale Period</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% tickets.forEach(ticket => { %>
+                <tr>
+                  <td><%= ticket.type %></td>
+                  <td>$<%= ticket.price %></td>
+                  <td><%= ticket.quantity %></td>
+                  <td><%= ticket.quantitySold %></td>
+                  <td>
+                    <%= ticket.quantity - ticket.quantitySold %>
+                    <div class="progress mt-1" style="height: 5px;">
+                      <div class="progress-bar bg-<%= ((ticket.quantitySold / ticket.quantity) * 100) > 75 ? 'danger' : (((ticket.quantitySold / ticket.quantity) * 100) > 50 ? 'warning' : 'success') %>" 
+                           role="progressbar" 
+                           style="width: <%= (ticket.quantitySold / ticket.quantity) * 100 %>%;">
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <%= dateFormatter.formatDate(ticket.saleStartDate) %> to<br>
+                    <%= dateFormatter.formatDate(ticket.saleEndDate) %>
+                  </td>
+                  <td>
+                    <span class="badge bg-<%= ticket.isActive ? 'success' : 'danger' %>">
+                      <%= ticket.isActive ? 'Active' : 'Inactive' %>
+                    </span>
+                  </td>
+                  <td>
+                    <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+                      <a href="/tickets/<%= ticket.id %>/edit" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTicketModal<%= ticket.id %>">
+                        <i class="fas fa-trash-alt"></i>
+                      </button>
+                      
+                      <!-- Delete Modal -->
+                      <div class="modal fade" id="deleteTicketModal<%= ticket.id %>" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title">Delete Ticket</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                              <p>Are you sure you want to delete the "<%= ticket.type %>" ticket?</p>
+                              <% if (ticket.quantitySold > 0) { %>
+                                <div class="alert alert-danger">
+                                  <strong>Warning:</strong> This ticket has been sold <%= ticket.quantitySold %> times. You cannot delete a ticket with existing bookings.
+                                </div>
+                              <% } else { %>
+                                <p class="text-danger">This action cannot be undone.</p>
+                              <% } %>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                              <form action="/tickets/<%= ticket.id %>/delete" method="POST">
+                                <button type="submit" class="btn btn-danger" <%= ticket.quantitySold > 0 ? 'disabled' : '' %>>Delete</button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info">
+          No tickets found for this event.
+          <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+            <a href="/tickets/event/<%= event.id %>/create" class="alert-link">Create your first ticket</a>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <% if (tickets && tickets.length > 0) { %>
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="mb-0">Sales Overview</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <% tickets.forEach(ticket => { %>
+            <div class="col-md-4 mb-3">
+              <div class="card h-100">
+                <div class="card-body">
+                  <h5 class="card-title"><%= ticket.type %></h5>
+                  <h6 class="card-subtitle mb-2 text-muted">$<%= ticket.price %></h6>
+                  
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span>Sold: <%= ticket.quantitySold %> / <%= ticket.quantity %></span>
+                      <span><%= Math.round((ticket.quantitySold / ticket.quantity) * 100) %>%</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-<%= ((ticket.quantitySold / ticket.quantity) * 100) > 75 ? 'danger' : (((ticket.quantitySold / ticket.quantity) * 100) > 50 ? 'warning' : 'success') %>" 
+                           role="progressbar" 
+                           style="width: <%= (ticket.quantitySold / ticket.quantity) * 100 %>%;">
+                        <%= Math.round((ticket.quantitySold / ticket.quantity) * 100) %>%
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="d-flex justify-content-between">
+                    <span>Available: <%= ticket.quantity - ticket.quantitySold %></span>
+                    <span class="badge bg-<%= ticket.isActive ? 'success' : 'danger' %>">
+                      <%= ticket.isActive ? 'Active' : 'Inactive' %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+  <% } %>

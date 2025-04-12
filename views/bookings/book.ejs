@@ -1,0 +1,210 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Book Tickets - <%= event.title %></h1>
+    <a href="/events/<%= event.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Event
+    </a>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Select Tickets</h5>
+        </div>
+        <div class="card-body">
+          <form action="/bookings/event/<%= event.id %>" method="POST">
+            <% if (event.tickets && event.tickets.length > 0) { %>
+              <div class="mb-4">
+                <div class="table-responsive">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>Ticket Type</th>
+                        <th>Price</th>
+                        <th>Available</th>
+                        <th>Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% event.tickets.forEach(ticket => { %>
+                        <tr>
+                          <td>
+                            <div class="form-check">
+                              <input class="form-check-input ticket-radio" type="radio" name="ticketId" id="ticket<%= ticket.id %>" value="<%= ticket.id %>" required>
+                              <label class="form-check-label" for="ticket<%= ticket.id %>">
+                                <strong><%= ticket.type %></strong>
+                                <% if (ticket.description) { %>
+                                  <p class="text-muted mb-0 small"><%= ticket.description %></p>
+                                <% } %>
+                              </label>
+                            </div>
+                          </td>
+                          <td>$<%= ticket.price %></td>
+                          <td><%= ticket.quantity - ticket.quantitySold %></td>
+                          <td>
+                            <select class="form-select quantity-select" name="quantity" data-ticket="<%= ticket.id %>" data-price="<%= ticket.price %>" data-available="<%= ticket.quantity - ticket.quantitySold %>" disabled>
+                              <% for (let i = 1; i <= Math.min(10, ticket.quantity - ticket.quantitySold); i++) { %>
+                                <option value="<%= i %>"><%= i %></option>
+                              <% } %>
+                            </select>
+                          </td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="mb-4">
+                <label for="promoCode" class="form-label">Promo Code (Optional)</label>
+                <input type="text" class="form-control" id="promoCode" name="promoCode" placeholder="Enter promo code if you have one">
+              </div>
+              
+              <div class="mb-4">
+                <label for="referralCode" class="form-label">Referral Code (Optional)</label>
+                <input type="text" class="form-control" id="referralCode" name="referralCode" placeholder="Enter referral code if you have one">
+              </div>
+              
+              <div class="card mb-4 bg-light d-none" id="orderSummary">
+                <div class="card-body">
+                  <h5 class="card-title">Order Summary</h5>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span id="summaryTicketType"></span>
+                    <span id="summaryTicketPrice"></span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span>Quantity</span>
+                    <span id="summaryQuantity"></span>
+                  </div>
+                  <hr>
+                  <div class="d-flex justify-content-between">
+                    <strong>Total</strong>
+                    <strong id="summaryTotal"></strong>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" id="continueButton" disabled>
+                  <i class="fas fa-shopping-cart me-1"></i> Continue to Checkout
+                </button>
+              </div>
+            <% } else { %>
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> There are no tickets available for this event at the moment.
+              </div>
+              <a href="/events" class="btn btn-primary">Browse Other Events</a>
+            <% } %>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Event Details</h5>
+        </div>
+        <div class="card-body">
+          <% if (event.featuredImage) { %>
+            <img src="<%= event.featuredImage %>" alt="<%= event.title %>" class="img-fluid rounded mb-3">
+          <% } %>
+          
+          <h5><%= event.title %></h5>
+          <p class="text-muted">
+            <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDateTime(event.startDate) %> - <%= dateFormatter.formatDateTime(event.endDate) %>
+          </p>
+          <p class="text-muted">
+            <i class="fas fa-map-marker-alt"></i> <%= event.venue %>, <%= event.address %>
+          </p>
+          
+          <div class="mb-3">
+            <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : 'primary' %>"><%= event.status %></span>
+            <% if (event.category) { %>
+              <span class="badge bg-secondary"><%= event.category.name %></span>
+            <% } %>
+          </div>
+          
+          <p class="small"><%= event.description.substring(0, 150) %>...</p>
+          <a href="/events/<%= event.id %>" class="btn btn-sm btn-outline-primary">View Event Details</a>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Booking Information</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Name</span>
+              <span><%= user.fullName %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Email</span>
+              <span><%= user.email %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Phone</span>
+              <span><%= user.phone %></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const ticketRadios = document.querySelectorAll('.ticket-radio');
+      const quantitySelects = document.querySelectorAll('.quantity-select');
+      const orderSummary = document.getElementById('orderSummary');
+      const continueButton = document.getElementById('continueButton');
+      
+      // Handle ticket selection
+      ticketRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+          // Reset all quantity selects
+          quantitySelects.forEach(select => {
+            select.disabled = true;
+          });
+          
+          // Enable selected ticket's quantity select
+          const selectedTicketId = this.value;
+          const quantitySelect = document.querySelector(`.quantity-select[data-ticket="${selectedTicketId}"]`);
+          if (quantitySelect) {
+            quantitySelect.disabled = false;
+            
+            // Trigger change event to update summary
+            updateOrderSummary(quantitySelect);
+          }
+          
+          // Show order summary
+          orderSummary.classList.remove('d-none');
+          
+          // Enable continue button
+          continueButton.disabled = false;
+        });
+      });
+      
+      // Handle quantity change
+      quantitySelects.forEach(select => {
+        select.addEventListener('change', function() {
+          updateOrderSummary(this);
+        });
+      });
+      
+      // Update order summary
+      function updateOrderSummary(quantitySelect) {
+        const ticketId = quantitySelect.getAttribute('data-ticket');
+        const price = parseFloat(quantitySelect.getAttribute('data-price'));
+        const quantity = parseInt(quantitySelect.value);
+        const ticketType = document.querySelector(`label[for="ticket${ticketId}"]`).textContent.trim();
+        
+        document.getElementById('summaryTicketType').textContent = ticketType;
+        document.getElementById('summaryTicketPrice').textContent = `$${price}`;
+        document.getElementById('summaryQuantity').textContent = quantity;
+        document.getElementById('summaryTotal').textContent = `$${(price * quantity)}`;
+      }
+    });
+  </script>

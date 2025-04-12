@@ -1,0 +1,110 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>User Management</h1>
+    <a href="/users/create" class="btn btn-primary">
+      <i class="fas fa-plus-circle me-1"></i> Create User
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (users && users.length > 0) { %>
+              <% users.forEach(user => { %>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <% if (user.profileImage) { %>
+                        <img src="<%= user.profileImage %>" alt="<%= user.fullName %>" class="rounded-circle me-2" width="40" height="40">
+                      <% } else { %>
+                        <div class="bg-light rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                          <i class="fas fa-user text-muted"></i>
+                        </div>
+                      <% } %>
+                      <%= user.fullName %>
+                    </div>
+                  </td>
+                  <td><%= user.email %></td>
+                  <td><%= user.phone %></td>
+                  <td>
+                    <span class="badge bg-<%= 
+                      user.role === 'SuperAdmin' ? 'danger' : 
+                      (user.role === 'Admin' ? 'warning' : 
+                       (user.role === 'Office Staff' ? 'info' : 
+                        (user.role === 'Ticket Checker' ? 'primary' : 'secondary')))
+                    %>">
+                      <%= user.role %>
+                    </span>
+                  </td>
+                  <td>
+                    <% if (user.isActive) { %>
+                      <span class="badge bg-success">Active</span>
+                    <% } else { %>
+                      <span class="badge bg-danger">Inactive</span>
+                    <% } %>
+                  </td>
+                  <td><%= dateFormatter.formatDate(user.createdAt) %></td>
+                  <td><%= user.lastLogin ? dateFormatter.formatDate(user.lastLogin) : 'Never' %></td>
+                  <td>
+                    <div class="btn-group">
+                      <a href="/users/profile/<%= user.id %>" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <button class="btn btn-sm btn-outline-<%= user.isActive ? 'danger' : 'success' %>" data-bs-toggle="modal" data-bs-target="#toggleUserModal<%= user.id %>">
+                        <i class="fas fa-<%= user.isActive ? 'ban' : 'check-circle' %>"></i>
+                      </button>
+                    </div>
+                    
+                    <!-- Toggle User Status Modal -->
+                    <div class="modal fade" id="toggleUserModal<%= user.id %>" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title"><%= user.isActive ? 'Deactivate' : 'Activate' %> User</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <p>Are you sure you want to <%= user.isActive ? 'deactivate' : 'activate' %> the user "<%= user.fullName %>"?</p>
+                            <% if (user.isActive) { %>
+                              <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> Deactivated users won't be able to log in or make bookings.
+                              </div>
+                            <% } %>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form action="/users/<%= user.id %>/toggle-status" method="POST">
+                              <button type="submit" class="btn btn-<%= user.isActive ? 'danger' : 'success' %>">
+                                <%= user.isActive ? 'Deactivate' : 'Activate' %> User
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr>
+                <td colspan="8" class="text-center py-4">No users found</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>

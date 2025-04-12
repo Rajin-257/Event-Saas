@@ -1,0 +1,235 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Verify Contact Information</h1>
+  </div>
+  
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Verify Your Contact Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Please verify your contact information to continue with your booking.
+          </div>
+          
+          <div class="mb-4">
+            <h6>Email Address: <strong><%= email %></strong></h6>
+            <div class="mt-2">
+              <div id="emailVerification">
+                <div class="d-flex">
+                  <button class="btn btn-outline-primary send-otp" data-method="email" data-destination="<%= email %>">
+                    Send OTP to Email
+                  </button>
+                  <button class="btn btn-success ms-2 d-none verify-btn" data-target="email">
+                    <i class="fas fa-check me-1"></i> Verified
+                  </button>
+                </div>
+                
+                <div class="mt-2 otp-form d-none" id="emailOtpForm">
+                  <div class="input-group mb-2">
+                    <input type="text" class="form-control" placeholder="Enter 6-digit OTP" id="emailOtp" maxlength="6">
+                    <button class="btn btn-primary verify-otp" data-method="email" data-destination="<%= email %>">Verify</button>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <small class="text-muted">OTP sent to your email</small>
+                    <a href="#" class="small resend-otp" data-method="email" data-destination="<%= email %>">Resend OTP</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <h6>Phone Number: <strong><%= phone %></strong></h6>
+            <div class="mt-2">
+              <div id="phoneVerification">
+                <div class="d-flex">
+                  <button class="btn btn-outline-primary send-otp" data-method="whatsapp" data-destination="<%= phone %>">
+                    Send OTP via WhatsApp
+                  </button>
+                  <button class="btn btn-success ms-2 d-none verify-btn" data-target="phone">
+                    <i class="fas fa-check me-1"></i> Verified
+                  </button>
+                </div>
+                
+                <div class="mt-2 otp-form d-none" id="phoneOtpForm">
+                  <div class="input-group mb-2">
+                    <input type="text" class="form-control" placeholder="Enter 6-digit OTP" id="phoneOtp" maxlength="6">
+                    <button class="btn btn-primary verify-otp" data-method="whatsapp" data-destination="<%= phone %>">Verify</button>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <small class="text-muted">OTP sent to your phone</small>
+                    <a href="#" class="small resend-otp" data-method="whatsapp" data-destination="<%= phone %>">Resend OTP</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <p class="mb-0">You need to verify at least one contact method to continue.</p>
+        </div>
+        <div class="card-footer">
+          <a href="/checkout" class="btn btn-primary" id="continueBtn" disabled>Continue to Checkout</a>
+          <a href="/events" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const sendOtpButtons = document.querySelectorAll('.send-otp');
+      const resendOtpLinks = document.querySelectorAll('.resend-otp');
+      const verifyOtpButtons = document.querySelectorAll('.verify-otp');
+      const continueBtn = document.getElementById('continueBtn');
+      
+      // Function to update continue button state
+      function updateContinueButton() {
+        const emailVerified = document.querySelector('[data-target="email"]').classList.contains('d-none') === false;
+        const phoneVerified = document.querySelector('[data-target="phone"]').classList.contains('d-none') === false;
+        
+        continueBtn.disabled = !(emailVerified || phoneVerified);
+      }
+      
+      // Send OTP
+      sendOtpButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const method = this.getAttribute('data-method');
+          const destination = this.getAttribute('data-destination');
+          
+          // Disable button and show spinner
+          this.disabled = true;
+          this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+          
+          // Send OTP request
+          fetch('/auth/send-otp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ method, destination })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Show OTP form
+              const formId = method === 'email' ? 'emailOtpForm' : 'phoneOtpForm';
+              document.getElementById(formId).classList.remove('d-none');
+              
+              // Reset button
+              this.disabled = false;
+              this.textContent = `Send OTP to ${method === 'email' ? 'Email' : 'WhatsApp'}`;
+            } else {
+              alert('Failed to send OTP: ' + data.message);
+              this.disabled = false;
+              this.textContent = `Send OTP to ${method === 'email' ? 'Email' : 'WhatsApp'}`;
+            }
+          })
+          .catch(error => {
+            alert('Error sending OTP. Please try again.');
+            this.disabled = false;
+            this.textContent = `Send OTP to ${method === 'email' ? 'Email' : 'WhatsApp'}`;
+          });
+        });
+      });
+      
+      // Resend OTP
+      resendOtpLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const method = this.getAttribute('data-method');
+          const destination = this.getAttribute('data-destination');
+          
+          // Change text
+          this.textContent = 'Sending...';
+          
+          // Send OTP request
+          fetch('/auth/send-otp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ method, destination })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              this.textContent = 'OTP sent!';
+              setTimeout(() => {
+                this.textContent = 'Resend OTP';
+              }, 2000);
+            } else {
+              alert('Failed to resend OTP: ' + data.message);
+              this.textContent = 'Resend OTP';
+            }
+          })
+          .catch(error => {
+            alert('Error resending OTP. Please try again.');
+            this.textContent = 'Resend OTP';
+          });
+        });
+      });
+      
+      // Verify OTP
+      verifyOtpButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const method = this.getAttribute('data-method');
+          const destination = this.getAttribute('data-destination');
+          const otpInput = document.getElementById(method === 'email' ? 'emailOtp' : 'phoneOtp');
+          const otp = otpInput.value.trim();
+          
+          if (!otp) {
+            alert('Please enter the OTP');
+            return;
+          }
+          
+          // Disable button and show spinner
+          this.disabled = true;
+          this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+          
+          // Verify OTP request
+          fetch('/auth/verify-otp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ destination, otp })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Mark as verified
+              const formId = method === 'email' ? 'emailOtpForm' : 'phoneOtpForm';
+              document.getElementById(formId).classList.add('d-none');
+              
+              const verifyBtn = document.querySelector(`[data-target="${method === 'email' ? 'email' : 'phone'}"]`);
+              verifyBtn.classList.remove('d-none');
+              
+              // Update session
+              fetch('/bookings/verify-' + (method === 'email' ? 'email' : 'phone'), {
+                method: 'POST'
+              });
+              
+              // Check if continue button should be enabled
+              updateContinueButton();
+            } else {
+              alert('Invalid OTP. Please try again.');
+              
+              // Reset button
+              this.disabled = false;
+              this.textContent = 'Verify';
+            }
+          })
+          .catch(error => {
+            alert('Error verifying OTP. Please try again.');
+            
+            // Reset button
+            this.disabled = false;
+            this.textContent = 'Verify';
+          });
+        });
+      });
+    });
+  </script>

@@ -1,0 +1,103 @@
+<section class="hero-section bg-light py-5 text-center">
+    <div class="container">
+      <h1 class="display-4 fw-bold">Discover Amazing Events</h1>
+      <p class="lead mb-4">Find and book tickets for the best events in your area</p>
+      <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+        <a href="/events" class="btn btn-primary btn-lg px-4 me-md-2">Browse Events</a>
+        <a href="/auth/register" class="btn btn-outline-secondary btn-lg px-4">Sign Up</a>
+      </div>
+    </div>
+  </section>
+  
+  <section class="featured-events py-5">
+    <div class="container">
+      <h2 class="text-center mb-4">Featured Events</h2>
+      
+      <% if (featuredEvents && featuredEvents.length > 0) { %>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+          <% featuredEvents.forEach(event => { %>
+            <div class="col">
+              <div class="card h-100 shadow-sm">
+                <% if (event.featuredImage) { %>
+                  <img src="<%= event.featuredImage %>" class="card-img-top" alt="<%= event.title %>">
+                <% } else { %>
+                  <div class="card-img-top bg-light text-center py-5">
+                    <i class="fas fa-calendar-alt fa-4x text-muted"></i>
+                  </div>
+                <% } %>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : 'primary' %>"><%= event.status %></span>
+                    <small class="text-muted"><%= dateFormatter.formatDate(event.startDate) %></small>
+                  </div>
+                  <h5 class="card-title"><%= event.title %></h5>
+                  <p class="card-text text-truncate"><%= event.description %></p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="fas fa-map-marker-alt"></i> <%= event.venue %></small>
+                    <a href="/events/<%= event.id %>" class="btn btn-sm btn-outline-primary">View Details</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+        <div class="text-center mt-4">
+          <a href="/events" class="btn btn-outline-primary">View All Events</a>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info">
+          No featured events at the moment. Check back soon!
+        </div>
+      <% } %>
+    </div>
+  </section>
+  
+  <section class="event-categories py-5 bg-light">
+    <div class="container">
+      <h2 class="text-center mb-4">Event Categories</h2>
+      
+      <% if (categories && categories.length > 0) { %>
+        <div class="row row-cols-2 row-cols-md-4 g-4">
+          <% categories.forEach(category => { %>
+            <div class="col">
+              <a href="/events?category=<%= category.id %>" class="text-decoration-none">
+                <div class="card h-100 text-center shadow-sm">
+                  <div class="card-body">
+                    <% if (category.icon) { %>
+                      <img src="<%= category.icon %>" alt="<%= category.name %>" class="mb-3" height="50">
+                    <% } else { %>
+                      <i class="fas fa-tags fa-2x mb-3 text-primary"></i>
+                    <% } %>
+                    <h5 class="card-title"><%= category.name %></h5>
+                  </div>
+                </div>
+              </a>
+            </div>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info">
+          No categories found.
+        </div>
+      <% } %>
+    </div>
+  </section>
+  
+  <section class="newsletter-section py-5">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+          <h3>Subscribe to Our Newsletter</h3>
+          <p class="lead">Stay updated with the latest events and offers</p>
+          <form action="/newsletter/subscribe" method="POST" class="row g-3 justify-content-center">
+            <div class="col-md-8">
+              <input type="email" class="form-control form-control-lg" name="email" placeholder="Your Email Address" required>
+            </div>
+            <div class="col-md-4">
+              <button type="submit" class="btn btn-primary btn-lg w-100">Subscribe</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>

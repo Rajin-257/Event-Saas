@@ -1,0 +1,147 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Product Inventory</h1>
+    <div>
+      <a href="/products/create" class="btn btn-primary">
+        <i class="fas fa-plus-circle me-1"></i> Add Product
+      </a>
+      <div class="btn-group">
+        <a href="/products/categories" class="btn btn-outline-primary">
+          <i class="fas fa-tags me-1"></i> Categories
+        </a>
+        <a href="/products/suppliers" class="btn btn-outline-primary">
+          <i class="fas fa-truck me-1"></i> Suppliers
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Filter Products</h5>
+    </div>
+    <div class="card-body">
+      <form action="/products" method="GET">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label for="search" class="form-label">Search</label>
+            <input type="text" class="form-control" id="search" name="search" value="<%= filters.search || '' %>" placeholder="Search by name or SKU">
+          </div>
+          
+          <div class="col-md-3 mb-3">
+            <label for="category" class="form-label">Category</label>
+            <select class="form-select" id="category" name="category">
+              <option value="">All Categories</option>
+              <% categories.forEach(category => { %>
+                <option value="<%= category.id %>" <%= filters.category == category.id ? 'selected' : '' %>><%= category.name %></option>
+              <% }); %>
+            </select>
+          </div>
+          
+          <div class="col-md-3 mb-3">
+            <label for="stock" class="form-label">Stock Level</label>
+            <select class="form-select" id="stock" name="stock">
+              <option value="">All Stock Levels</option>
+              <option value="low" <%= filters.stock === 'low' ? 'selected' : '' %>>Low Stock</option>
+            </select>
+          </div>
+          
+          <div class="col-md-2 mb-3 d-flex align-items-end">
+            <div class="d-grid w-100">
+              <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between mb-3">
+        <h5>Products</h5>
+        <div>
+          <a href="/products/export-csv" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-file-csv me-1"></i> Export to CSV
+          </a>
+          <a href="/products/valuation" class="btn btn-sm btn-outline-info">
+            <i class="fas fa-chart-pie me-1"></i> Valuation Report
+          </a>
+        </div>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Name</th>
+              <th>SKU</th>
+              <th>Category</th>
+              <th>Stock</th>
+              <th>Cost Price</th>
+              <th>Selling Price</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (products && products.length > 0) { %>
+              <% products.forEach(product => { %>
+                <tr>
+                  <td>
+                    <% if (product.image) { %>
+                      <img src="<%= product.image %>" alt="<%= product.name %>" width="50" height="50" class="img-thumbnail">
+                    <% } else { %>
+                      <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="fas fa-box text-muted"></i>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td><%= product.name %></td>
+                  <td><%= product.sku %></td>
+                  <td><%= product.category ? product.category.name : 'N/A' %></td>
+                  <td>
+                    <span class="<%= product.currentStock <= product.minimumStock ? 'text-danger' : '' %>">
+                      <%= product.currentStock %> <%= product.currentStock <= product.minimumStock ? '<i class="fas fa-exclamation-triangle text-danger" title="Low Stock"></i>' : '' %>
+                    </span>
+                  </td>
+                  <td>$<%= product.costPrice %></td>
+                  <td>$<%= product.sellingPrice %></td>
+                  <td>
+                    <span class="badge bg-<%= product.isActive ? 'success' : 'danger' %>">
+                      <%= product.isActive ? 'Active' : 'Inactive' %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <a href="/products/<%= product.id %>" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="/products/<%= product.id %>/edit" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <a href="/products/<%= product.id %>/stock" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-boxes"></i>
+                      </a>
+                      <a href="/products/<%= product.id %>/variants" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-layer-group"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr>
+                <td colspan="9" class="text-center py-4">No products found matching your criteria.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <% if (pagination && pagination.pageCount > 1) { %>
+        <%- include('../partials/pagination') %>
+      <% } %>
+    </div>
+  </div>

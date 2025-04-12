@@ -1,0 +1,85 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Profile</h1>
+    <a href="/users/profile" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Profile
+    </a>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Update Your Information</h5>
+        </div>
+        <div class="card-body">
+          <form action="/users/edit-profile" method="POST" enctype="multipart/form-data">
+            <div class="row mb-4">
+              <div class="col-md-4">
+                <div class="text-center mb-3">
+                  <% if (user.profileImage) { %>
+                    <img src="<%= user.profileImage %>" alt="<%= user.fullName %>" id="profile-preview" class="rounded-circle img-fluid mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                  <% } else { %>
+                    <div class="bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;" id="profile-icon">
+                      <i class="fas fa-user fa-5x text-muted"></i>
+                    </div>
+                    <img src="" alt="Profile Preview" id="profile-preview" class="rounded-circle img-fluid mb-3 d-none" style="width: 150px; height: 150px; object-fit: cover;">
+                  <% } %>
+                  
+                  <div class="mb-3">
+                    <label for="profileImage" class="form-label">Profile Image</label>
+                    <input class="form-control" type="file" id="profileImage" name="profileImage" accept="image/*">
+                    <div class="form-text">Maximum size: 2MB. Supported formats: JPG, PNG.</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label for="fullName" class="form-label">Full Name</label>
+                  <input type="text" class="form-control" id="fullName" name="fullName" value="<%= user.fullName %>" required>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="email" class="form-label">Email Address</label>
+                  <input type="email" class="form-control" id="email" value="<%= user.email %>" disabled>
+                  <div class="form-text">Email address cannot be changed. Contact support if needed.</div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="phone" class="form-label">Phone Number</label>
+                  <input type="tel" class="form-control" id="phone" name="phone" value="<%= user.phone %>" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="/users/profile" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Update Profile</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('profileImage').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const preview = document.getElementById('profile-preview');
+          preview.src = e.target.result;
+          preview.classList.remove('d-none');
+          
+          const icon = document.getElementById('profile-icon');
+          if (icon) {
+            icon.classList.add('d-none');
+          }
+        }
+        
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>

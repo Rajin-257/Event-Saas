@@ -1,75 +1,41 @@
-module.exports = {
-    // Ensure user is authenticated
-    ensureAuthenticated: (req, res, next) => {
-      if (req.isAuthenticated()) {
-        return next();
-      }
-      req.flash('error_msg', 'Please log in to access this page');
-      res.redirect('/login');
-    },
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+require('dotenv').config();
+
+module.exports = async (req, res, next) => {
+  try {
+    // Check if token exists in cookies
+    const token = req.cookies.token;
     
-    // Ensure user is not authenticated (for login/register pages)
-    forwardAuthenticated: (req, res, next) => {
-      if (!req.isAuthenticated()) {
-        return next();
-      }
-      res.redirect('/dashboard');
-    },
-  
-    // Check if user has admin role
-    ensureAdmin: (req, res, next) => {
-      if (req.isAuthenticated() && req.user.role === 'super_admin') {
-        return next();
-      }
-      req.flash('error_msg', 'You do not have permission to access this page');
-      res.redirect('/dashboard');
-    },
-  
-    // Check if user is an organizer or admin
-    ensureOrganizer: (req, res, next) => {
-      if (req.isAuthenticated() && (req.user.role === 'organizer' || req.user.role === 'super_admin')) {
-        return next();
-      }
-      req.flash('error_msg', 'You need to be an event organizer to access this page');
-      res.redirect('/dashboard');
-    },
-  
-    // Check if user is an event owner (for event-specific operations)
-    ensureEventOwner: async (req, res, next) => {
-      try {
-        if (!req.isAuthenticated()) {
-          req.flash('error_msg', 'Please log in to access this page');
-          return res.redirect('/login');
-        }
-  
-        const Event = require('../models/Event');
-        const eventId = req.params.id || req.body.eventId;
-        
-        // If no event ID provided
-        if (!eventId) {
-          req.flash('error_msg', 'Invalid event');
-          return res.redirect('/events');
-        }
-  
-        const event = await Event.findByPk(eventId);
-        
-        // If event not found
-        if (!event) {
-          req.flash('error_msg', 'Event not found');
-          return res.redirect('/events');
-        }
-  
-        // Allow if user is event organizer or admin
-        if (event.organizerId === req.user.id || req.user.role === 'super_admin') {
-          return next();
-        }
-  
-        req.flash('error_msg', 'You do not have permission to manage this event');
-        res.redirect('/events');
-      } catch (err) {
-        console.error('Error in ensureEventOwner middleware:', err);
-        req.flash('error_msg', 'An error occurred');
-        res.redirect('/dashboard');
-      }
+    if (!token) {
+      req.flash('error', 'Please login to continue');
+      return res.redirect('/auth/login');
     }
-  };
+    
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check if user exists
+    const user = await User.findByPk(decoded.id);
+    
+    if (!user) {
+      req.flash('error', 'User not found');
+      return res.redirect('/auth/login');
+    }
+    
+    // Check if user is active
+    if (!user.isActive) {
+      req.flash('error', 'Your account has been deactivated');
+      return res.redirect('/auth/login');
+    }
+    
+    // Set user in request
+    req.user = user;
+    res.locals.user = user;
+    
+    next();
+  } catch (error) {
+    req.flash('error', 'Session expired. Please login again');
+    return res.redirect('/auth/login');
+  }
+};

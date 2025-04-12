@@ -1,0 +1,288 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Booking #<%= booking.id %></h1>
+    <div>
+      <% if (user.role === 'SuperAdmin' || user.role === 'Admin' || user.role === 'Office Staff') { %>
+        <a href="/bookings/admin/all" class="btn btn-outline-primary">
+          <i class="fas fa-arrow-left me-1"></i> Back to Bookings
+        </a>
+      <% } else { %>
+        <a href="/bookings" class="btn btn-outline-primary">
+          <i class="fas fa-arrow-left me-1"></i> Back to My Bookings
+        </a>
+      <% } %>
+      
+      <% if (booking.status === 'Confirmed' && !booking.isCheckedIn) { %>
+        <button class="btn btn-outline-success" onclick="printTicket()">
+          <i class="fas fa-print me-1"></i> Print Ticket
+        </button>
+      <% } %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Booking Details</h5>
+          <div>
+            <span class="badge bg-<%= booking.status === 'Confirmed' ? 'success' : (booking.status === 'Pending' ? 'warning' : 'danger') %>">
+              <%= booking.status %>
+            </span>
+            <span class="badge bg-<%= booking.paymentStatus === 'Paid' ? 'success' : (booking.paymentStatus === 'Pending' ? 'warning' : 'danger') %>">
+              <%= booking.paymentStatus %>
+            </span>
+            <% if (booking.isCheckedIn) { %>
+              <span class="badge bg-info">Checked In</span>
+            <% } %>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h6>Event</h6>
+              <p class="mb-0"><strong><%= booking.event.title %></strong></p>
+              <p class="text-muted">
+                <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDateTime(booking.event.startDate) %> - <%= dateFormatter.formatDateTime(booking.event.endDate) %><br>
+                <i class="fas fa-map-marker-alt"></i> <%= booking.event.venue %>, <%= booking.event.address %>
+              </p>
+            </div>
+            
+            <div class="col-md-6">
+              <h6>Ticket</h6>
+              <p class="mb-0"><strong><%= booking.ticket.type %></strong></p>
+              <p class="text-muted">
+                <i class="fas fa-ticket-alt"></i> <%= booking.quantity %> ticket(s) @ $<%= booking.ticket.price %> each<br>
+                <i class="fas fa-money-bill-wave"></i> Total: $<%= booking.totalAmount %>
+              </p>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h6>Payment Information</h6>
+              <ul class="list-unstyled">
+                <li><strong>Method:</strong> <%= booking.paymentMethod %></li>
+                <li><strong>Status:</strong> <%= booking.paymentStatus %></li>
+                <% if (booking.transactionId) { %>
+                  <li><strong>Transaction ID:</strong> <%= booking.transactionId %></li>
+                <% } %>
+                <li><strong>Amount:</strong> $<%= booking.totalAmount %></li>
+                <% if (booking.discountAmount > 0) { %>
+                  <li><strong>Discount:</strong> $<%= booking.discountAmount %></li>
+                <% } %>
+              </ul>
+            </div>
+            
+            <div class="col-md-6">
+              <h6>Additional Information</h6>
+              <ul class="list-unstyled">
+                <li><strong>Booking Date:</strong> <%= dateFormatter.formatDateTime(booking.createdAt) %></li>
+                <% if (booking.promoCode) { %>
+                  <li><strong>Promo Code:</strong> <%= booking.promoCode %></li>
+                <% } %>
+                <% if (booking.referralCode) { %>
+                  <li><strong>Referral Code:</strong> <%= booking.referralCode %></li>
+                <% } %>
+                <% if (booking.isCheckedIn) { %>
+                  <li><strong>Checked In:</strong> <%= dateFormatter.formatDateTime(booking.checkedInAt) %></li>
+                <% } %>
+              </ul>
+            </div>
+          </div>
+          
+          <% if (isAdmin && booking.adminNotes) { %>
+            <div class="mb-4">
+              <h6>Admin Notes</h6>
+              <p class="mb-0"><%= booking.adminNotes %></p>
+            </div>
+          <% } %>
+          
+          <div class="text-center">
+            <% if (booking.status === 'Confirmed' && booking.paymentStatus === 'Paid' && !booking.isCheckedIn) { %>
+              <% if (booking.qrCode) { %>
+                <div class="mb-3">
+                  <img src="<%= booking.qrCode %>" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                  <p class="text-muted mt-2">Scan this QR code for entry</p>
+                </div>
+              <% } %>
+            <% } %>
+            
+            <% if (isAdmin) { %>
+              <hr>
+              <div class="row justify-content-center">
+                <div class="col-md-6">
+                  <% if (booking.status === 'Confirmed' && booking.paymentStatus === 'Paid' && !booking.isCheckedIn) { %>
+                    <form action="/admin/bookings/<%= booking.id %>/check-in" method="POST" class="mb-2">
+                      <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-check-circle me-1"></i> Manual Check-in
+                      </button>
+                    </form>
+                  <% } %>
+                  
+                  <button type="button" class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#changePaymentModal">
+                    <i class="fas fa-dollar-sign me-1"></i> Update Payment Status
+                  </button>
+                  
+                  <button type="button" class="btn btn-outline-info w-100" data-bs-toggle="modal" data-bs-target="#addNotesModal">
+                    <i class="fas fa-sticky-note me-1"></i> Add/Edit Notes
+                  </button>
+                </div>
+              </div>
+            <% } else if (booking.status !== 'Cancelled' && new Date(booking.event.startDate) > new Date()) { %>
+              <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelBookingModal">
+                <i class="fas fa-times-circle me-1"></i> Cancel Booking
+              </button>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Customer Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <% if (booking.user.profileImage) { %>
+              <img src="<%= booking.user.profileImage %>" alt="<%= booking.user.fullName %>" class="rounded-circle me-3" width="50" height="50">
+            <% } else { %>
+              <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="fas fa-user text-muted"></i>
+              </div>
+            <% } %>
+            <div>
+              <h6 class="mb-0"><%= booking.user.fullName %></h6>
+              <p class="text-muted mb-0 small">Customer</p>
+            </div>
+          </div>
+          
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Email</span>
+              <span><%= booking.user.email %></span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>Phone</span>
+              <span><%= booking.user.phone %></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <% if (booking.status === 'Confirmed' && !booking.isCheckedIn) { %>
+        <div class="card text-center mb-4">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Share Your Ticket</h5>
+            <div class="d-grid gap-2">
+              <a href="mailto:?subject=My%20Ticket%20for%20<%= encodeURIComponent(booking.event.title) %>&body=Here%20is%20my%20ticket%20for%20<%= encodeURIComponent(booking.event.title) %>%20on%20<%= encodeURIComponent(dateFormatter.formatDate(booking.event.startDate)) %>%20at%20<%= encodeURIComponent(booking.event.venue) %>%0A%0ABooking%20ID%3A%20<%= booking.id %>%0A%0AAccess%20my%20booking%20at%3A%20<%= encodeURIComponent(`${process.env.BASE_URL}/bookings/${booking.id}`) %>" class="btn btn-outline-primary">
+                <i class="fas fa-envelope me-1"></i> Email
+              </a>
+              <a href="https://wa.me/?text=Here%20is%20my%20ticket%20for%20<%= encodeURIComponent(booking.event.title) %>%20on%20<%= encodeURIComponent(dateFormatter.formatDate(booking.event.startDate)) %>%20at%20<%= encodeURIComponent(booking.event.venue) %>%0A%0ABooking%20ID%3A%20<%= booking.id %>%0A%0AAccess%20my%20booking%20at%3A%20<%= encodeURIComponent(`${process.env.BASE_URL}/bookings/${booking.id}`) %>" class="btn btn-outline-success" target="_blank">
+                <i class="fab fa-whatsapp me-1"></i> WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+      
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Need Help?</h5>
+          <p class="card-text">If you have any questions or need assistance with your booking, please contact our support team.</p>
+          <div class="d-grid">
+            <a href="/contact" class="btn btn-outline-primary">
+              <i class="fas fa-headset me-1"></i> Contact Support
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Cancel Booking Modal -->
+  <div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancel Booking</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to cancel your booking for "<%= booking.event.title %>"?</p>
+          <% if (booking.paymentStatus === 'Paid') { %>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> Your payment will be refunded according to our refund policy.
+            </div>
+          <% } %>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Booking</button>
+          <form action="/bookings/<%= booking.id %>/cancel" method="POST">
+            <button type="submit" class="btn btn-danger">Cancel Booking</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Admin: Change Payment Status Modal -->
+  <% if (isAdmin) { %>
+    <div class="modal fade" id="changePaymentModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Update Payment Status</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form action="/admin/bookings/<%= booking.id %>/payment-status" method="POST">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="paymentStatus" class="form-label">Payment Status</label>
+                <select class="form-select" id="paymentStatus" name="paymentStatus" required>
+                  <option value="Pending" <%= booking.paymentStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
+                  <option value="Paid" <%= booking.paymentStatus === 'Paid' ? 'selected' : '' %>>Paid</option>
+                  <option value="Failed" <%= booking.paymentStatus === 'Failed' ? 'selected' : '' %>>Failed</option>
+                  <option value="Refunded" <%= booking.paymentStatus === 'Refunded' ? 'selected' : '' %>>Refunded</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Update Status</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal fade" id="addNotesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add/Edit Notes</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form action="/admin/bookings/<%= booking.id %>/notes" method="POST">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="notes" class="form-label">Admin Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="5"><%= booking.adminNotes || '' %></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Notes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  <% } %>
+  
+  <script>
+    function printTicket() {
+      window.print();
+    }
+  </script>

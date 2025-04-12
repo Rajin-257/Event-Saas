@@ -1,0 +1,280 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Ticket Sales Report</h1>
+    <a href="/dashboard" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+  
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Filter Report</h5>
+    </div>
+    <div class="card-body">
+      <form action="/reports/ticket-sales" method="GET">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label for="startDate" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="startDate" name="startDate" value="<%= filters.startDate %>">
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label for="endDate" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="endDate" name="endDate" value="<%= filters.endDate %>">
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label for="eventId" class="form-label">Event</label>
+            <select class="form-select" id="eventId" name="eventId">
+              <option value="">All Events</option>
+              <% events.forEach(event => { %>
+                <option value="<%= event.id %>" <%= filters.eventId == event.id ? 'selected' : '' %>><%= event.title %></option>
+              <% }); %>
+            </select>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <button type="submit" class="btn btn-primary">Apply Filters</button>
+          <a href="/reports/ticket-sales" class="btn btn-outline-secondary">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Total Bookings</h6>
+              <h2 class="mb-0"><%= summary.totalBookings %></h2>
+            </div>
+            <i class="fas fa-shopping-cart fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-primary border-top-0">
+          <span class="text-white">Total confirmed bookings</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Total Revenue</h6>
+              <h2 class="mb-0">$<%= summary.totalRevenue %></h2>
+            </div>
+            <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-success border-top-0">
+          <span class="text-white">Total sales amount</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Total Tickets</h6>
+              <h2 class="mb-0"><%= summary.totalTickets %></h2>
+            </div>
+            <i class="fas fa-ticket-alt fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-info border-top-0">
+          <span class="text-white">Total tickets sold</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Sales Chart</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="salesChart" height="300"></canvas>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Ticket Sales Breakdown</h5>
+        </div>
+        <div class="card-body">
+          <% if (ticketSales && ticketSales.length > 0) { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Ticket Type</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total Amount</th>
+                    <th>Bookings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% ticketSales.forEach(sale => { %>
+                    <tr>
+                      <td><%= sale.event.title %></td>
+                      <td><%= sale.ticket.type %></td>
+                      <td>$<%= sale.ticket.price %></td>
+                      <td><%= sale.dataValues.totalQuantity %></td>
+                      <td>$<%= parseFloat(sale.dataValues.totalAmount) %></td>
+                      <td><%= sale.dataValues.bookingCount %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+                <tfoot class="table-light">
+                  <tr>
+                    <th colspan="3">Total</th>
+                    <th><%= summary.totalTickets %></th>
+                    <th>$<%= summary.totalRevenue %></th>
+                    <th><%= summary.totalBookings %></th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="alert alert-info">
+              No ticket sales data found for the selected period.
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Report Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary" onclick="printReport()">
+              <i class="fas fa-print me-1"></i> Print Report
+            </button>
+            
+            <button class="btn btn-outline-success" onclick="exportToExcel()">
+              <i class="fas fa-file-excel me-1"></i> Export to Excel
+            </button>
+            
+            <button class="btn btn-outline-danger" onclick="exportToPDF()">
+              <i class="fas fa-file-pdf me-1"></i> Export to PDF
+            </button>
+          </div>
+          
+          <hr>
+          
+          <h6 class="card-title">Other Reports</h6>
+          <div class="list-group">
+            <a href="/reports/event-performance" class="list-group-item list-group-item-action">
+              <i class="fas fa-chart-line me-2"></i> Event Performance
+            </a>
+            <a href="/reports/inventory" class="list-group-item list-group-item-action">
+              <i class="fas fa-boxes me-2"></i> Inventory Report
+            </a>
+            <a href="/reports/commission" class="list-group-item list-group-item-action">
+              <i class="fas fa-money-bill-wave me-2"></i> Commission Report
+            </a>
+            <a href="/reports/user-activity" class="list-group-item list-group-item-action">
+              <i class="fas fa-users me-2"></i> User Activity
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    // Parse the JSON data
+    const dailySales = `<%= dailySales %>`;
+    
+    // Prepare data for chart
+    const dates = dailySales.map(item => item.date);
+    const amounts = dailySales.map(item => item.amount);
+    const quantities = dailySales.map(item => item.quantity);
+    
+    // Create the chart
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Revenue ($)',
+            data: amounts,
+            backgroundColor: 'rgba(40, 167, 69, 0.5)',
+            borderColor: 'rgb(40, 167, 69)',
+            borderWidth: 1,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Tickets Sold',
+            data: quantities,
+            type: 'line',
+            backgroundColor: 'rgba(0, 123, 255, 0.5)',
+            borderColor: 'rgb(0, 123, 255)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgb(0, 123, 255)',
+            pointRadius: 3,
+            fill: false,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            position: 'left',
+            title: {
+              display: true,
+              text: 'Revenue ($)'
+            }
+          },
+          y1: {
+            beginAtZero: true,
+            position: 'right',
+            grid: {
+              drawOnChartArea: false,
+            },
+            title: {
+              display: true,
+              text: 'Tickets Sold'
+            }
+          }
+        }
+      }
+    });
+    
+    // Print report
+    function printReport() {
+      window.print();
+    }
+    
+    // Export to Excel (placeholder function)
+    function exportToExcel() {
+      alert('This would export the report to Excel in a real implementation.');
+    }
+    
+    // Export to PDF (placeholder function)
+    function exportToPDF() {
+      alert('This would export the report to PDF in a real implementation.');
+    }
+  </script>

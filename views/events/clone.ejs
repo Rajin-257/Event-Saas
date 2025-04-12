@@ -1,0 +1,159 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Clone Event</h1>
+    <a href="/events/<%= event.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Event
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <form action="/events/<%= event.id %>/clone" method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label for="title" class="form-label">Event Title</label>
+              <input type="text" class="form-control" id="title" name="title" value="<%= event.title %> (Copy)" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="5" required><%= event.description %></textarea>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="categoryId" class="form-label">Category</label>
+                  <select class="form-select" id="categoryId" name="categoryId" required>
+                    <option value="">Select Category</option>
+                    <% categories.forEach(category => { %>
+                      <option value="<%= category.id %>" <%= event.categoryId == category.id ? 'selected' : '' %>><%= category.name %></option>
+                    <% }); %>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="startDate" class="form-label">Start Date</label>
+                  <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="endDate" class="form-label">End Date</label>
+                  <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="venue" class="form-label">Venue</label>
+              <input type="text" class="form-control" id="venue" name="venue" value="<%= event.venue %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea class="form-control" id="address" name="address" rows="2" required><%= event.address %></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label for="capacity" class="form-label">Capacity</label>
+              <input type="number" class="form-control" id="capacity" name="capacity" min="1" value="<%= event.capacity %>" required>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="mb-3">
+              <label for="featuredImage" class="form-label">Featured Image</label>
+              <input type="file" class="form-control" id="featuredImage" name="featuredImage" accept="image/*">
+              <div class="mt-2">
+                <% if (event.featuredImage) { %>
+                  <div id="currentImage" class="border rounded p-2 text-center">
+                    <p>Current Image (will be copied if no new image is uploaded):</p>
+                    <img src="<%= event.featuredImage %>" alt="<%= event.title %>" class="img-fluid">
+                  </div>
+                <% } %>
+                <div id="imagePreview" class="border rounded p-2 text-center d-none mt-3">
+                  <p>New Image:</p>
+                  <img id="preview" src="#" alt="Preview" class="img-fluid">
+                </div>
+              </div>
+            </div>
+            
+            <div class="card mb-3">
+              <div class="card-header">
+                <h5 class="mb-0">Ticket Options</h5>
+              </div>
+              <div class="card-body">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="cloneTickets" name="cloneTickets" checked>
+                  <label class="form-check-label" for="cloneTickets">
+                    Clone Tickets from Original Event
+                  </label>
+                </div>
+                
+                <% if (event.tickets && event.tickets.length > 0) { %>
+                  <div class="mt-3">
+                    <p class="mb-2">The following tickets will be cloned:</p>
+                    <ul class="list-group list-group-flush">
+                      <% event.tickets.forEach(ticket => { %>
+                        <li class="list-group-item px-0">
+                          <strong><%= ticket.type %></strong> - $<%= ticket.price %><br>
+                          <small class="text-muted">Quantity: <%= ticket.quantity %></small>
+                        </li>
+                      <% }); %>
+                    </ul>
+                  </div>
+                <% } else { %>
+                  <div class="alert alert-info mt-3">
+                    No tickets found in the original event.
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="/events/<%= event.id %>" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Clone Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('featuredImage').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          document.getElementById('preview').src = e.target.result;
+          document.getElementById('imagePreview').classList.remove('d-none');
+        }
+        
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('imagePreview').classList.add('d-none');
+      }
+    });
+    
+    // Set default dates for the new event (next month)
+    document.addEventListener('DOMContentLoaded', function() {
+      const now = new Date();
+      const nextMonth = new Date(now);
+      nextMonth.setMonth(now.getMonth() + 1);
+      
+      const startDate = new Date(nextMonth);
+      const endDate = new Date(nextMonth);
+      endDate.setDate(endDate.getDate() + 1);
+      
+      document.getElementById('startDate').value = startDate.toISOString().slice(0, 16);
+      document.getElementById('endDate').value = endDate.toISOString().slice(0, 16);
+    });
+  </script>

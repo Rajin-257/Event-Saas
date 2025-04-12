@@ -1,0 +1,140 @@
+<div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Today's Sales</h6>
+              <h2 class="mb-0">$<%= stats.todaySales %></h2>
+            </div>
+            <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-success border-top-0">
+          <span class="text-white">Today's Revenue</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Today's Bookings</h6>
+              <h2 class="mb-0"><%= stats.todayBookingsCount %></h2>
+            </div>
+            <i class="fas fa-ticket-alt fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-primary border-top-0">
+          <span class="text-white">Total Bookings Today</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Tickets Sold Today</h6>
+              <h2 class="mb-0"><%= stats.todayTickets %></h2>
+            </div>
+            <i class="fas fa-users fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-info border-top-0">
+          <span class="text-white">Total Tickets Sold Today</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-7">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Today's Bookings</h5>
+        </div>
+        <div class="card-body">
+          <% if (todayBookings && todayBookings.length > 0) { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Event</th>
+                    <th>Tickets</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% todayBookings.forEach(booking => { %>
+                    <tr>
+                      <td>#<%= booking.id %></td>
+                      <td>
+                        <%= booking.user.fullName %><br>
+                        <small class="text-muted"><%= booking.user.phone %></small>
+                      </td>
+                      <td><%= booking.event.title %></td>
+                      <td><%= booking.quantity %> x <%= booking.ticket.type %></td>
+                      <td>$<%= booking.totalAmount %></td>
+                      <td>
+                        <span class="badge bg-<%= booking.status === 'Confirmed' ? 'success' : (booking.status === 'Pending' ? 'warning' : 'danger') %>">
+                          <%= booking.status %>
+                        </span>
+                        <br>
+                        <span class="badge bg-<%= booking.paymentStatus === 'Paid' ? 'success' : (booking.paymentStatus === 'Pending' ? 'warning' : 'danger') %>">
+                          <%= booking.paymentStatus %>
+                        </span>
+                      </td>
+                      <td>
+                        <a href="/bookings/<%= booking.id %>" class="btn btn-sm btn-outline-primary">View</a>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="alert alert-info">No bookings made today.</div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-5">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Ongoing Events</h5>
+        </div>
+        <div class="card-body">
+          <% if (ongoingEvents && ongoingEvents.length > 0) { %>
+            <ul class="list-group list-group-flush">
+              <% ongoingEvents.forEach(event => { %>
+                <li class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1"><%= event.title %></h6>
+                    <span class="badge bg-success">Ongoing</span>
+                  </div>
+                  <p class="mb-1">
+                    <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDate(event.startDate) %> - <%= dateFormatter.formatDate(event.endDate) %>
+                  </p>
+                  <p class="mb-1"><i class="fas fa-map-marker-alt"></i> <%= event.venue %></p>
+                  <div class="mt-2">
+                    <a href="/events/<%= event.id %>" class="btn btn-sm btn-outline-primary">View Details</a>
+                  </div>
+                </li>
+              <% }); %>
+            </ul>
+          <% } else { %>
+            <div class="alert alert-info">No ongoing events.</div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>

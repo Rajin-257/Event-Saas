@@ -1,0 +1,87 @@
+<div class="row">
+    <div class="col-md-3">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Filter Events</h5>
+        </div>
+        <div class="card-body">
+          <form action="/events" method="GET">
+            <div class="mb-3">
+              <label for="search" class="form-label">Search</label>
+              <input type="text" class="form-control" id="search" name="search" value="<%= filters.search || '' %>">
+            </div>
+            
+            <div class="mb-3">
+              <label for="category" class="form-label">Category</label>
+              <select class="form-select" id="category" name="category">
+                <option value="">All Categories</option>
+                <% categories.forEach(category => { %>
+                  <option value="<%= category.id %>" <%= filters.category == category.id ? 'selected' : '' %>><%= category.name %></option>
+                <% }); %>
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="status" id="statusAll" value="" <%= !filters.status ? 'checked' : '' %>>
+                <label class="form-check-label" for="statusAll">All</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="status" id="statusOngoing" value="Ongoing" <%= filters.status === 'Ongoing' ? 'checked' : '' %>>
+                <label class="form-check-label" for="statusOngoing">Ongoing</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="status" id="statusUpcoming" value="Upcoming" <%= filters.status === 'Upcoming' ? 'checked' : '' %>>
+                <label class="form-check-label" for="statusUpcoming">Upcoming</label>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            <a href="/events" class="btn btn-outline-secondary w-100 mt-2">Clear Filters</a>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-9">
+      <h1 class="mb-4">Events</h1>
+      
+      <% if (events && events.length > 0) { %>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+          <% events.forEach(event => { %>
+            <div class="col">
+              <div class="card h-100 shadow-sm">
+                <% if (event.featuredImage) { %>
+                  <img src="<%= event.featuredImage %>" class="card-img-top" alt="<%= event.title %>">
+                <% } else { %>
+                  <div class="card-img-top bg-light text-center py-5">
+                    <i class="fas fa-calendar-alt fa-4x text-muted"></i>
+                  </div>
+                <% } %>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : (event.status === 'Upcoming' ? 'primary' : 'secondary') %>"><%= event.status %></span>
+                    <small class="text-muted"><%= dateFormatter.formatDate(event.startDate) %></small>
+                  </div>
+                  <h5 class="card-title"><%= event.title %></h5>
+                  <p class="card-text"><%= event.description.substring(0, 100) %>...</p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="fas fa-map-marker-alt"></i> <%= event.venue %></small>
+                    <a href="/events/<%= event.id %>" class="btn btn-sm btn-outline-primary">View Details</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+        
+        <!-- Pagination -->
+        <%- include('../partials/pagination') %>
+      <% } else { %>
+        <div class="alert alert-info">
+          No events found matching your criteria. Please try a different filter.
+        </div>
+      <% } %>
+    </div>
+  </div>

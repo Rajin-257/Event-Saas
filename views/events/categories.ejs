@@ -1,0 +1,203 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Event Categories</h1>
+    <a href="/events" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Events
+    </a>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-4 mb-md-0">
+        <div class="card-header">
+          <h5 class="mb-0">All Categories</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Icon</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (categories && categories.length > 0) { %>
+                  <% categories.forEach(category => { %>
+                    <tr>
+                      <td><%= category.name %></td>
+                      <td><%= category.description || 'N/A' %></td>
+                      <td>
+                        <% if (category.icon) { %>
+                          <img src="<%= category.icon %>" alt="<%= category.name %>" width="40">
+                        <% } else { %>
+                          <i class="fas fa-tag text-muted"></i>
+                        <% } %>
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-outline-warning" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#editCategoryModal"
+                          data-id="<%= category.id %>"
+                          data-name="<%= category.name %>"
+                          data-description="<%= category.description || '' %>"
+                          data-icon="<%= category.icon || '' %>">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#deleteCategoryModal"
+                          data-id="<%= category.id %>"
+                          data-name="<%= category.name %>">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="4" class="text-center">No categories found</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Add New Category</h5>
+        </div>
+        <div class="card-body">
+          <form action="/events/categories/create" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="name" class="form-label">Category Name</label>
+              <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label for="icon" class="form-label">Icon Image</label>
+              <input type="file" class="form-control" id="icon" name="icon" accept="image/*">
+            </div>
+            
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Add Category</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Edit Category Modal -->
+  <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="editCategoryForm" action="" method="POST" enctype="multipart/form-data">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="edit-name" class="form-label">Category Name</label>
+              <input type="text" class="form-control" id="edit-name" name="name" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="edit-description" class="form-label">Description</label>
+              <textarea class="form-control" id="edit-description" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label for="edit-icon" class="form-label">Icon Image</label>
+              <input type="file" class="form-control" id="edit-icon" name="icon" accept="image/*">
+              <div id="current-icon" class="mt-2 text-center d-none">
+                <p>Current Icon:</p>
+                <img id="icon-preview" src="" alt="Current Icon" class="img-thumbnail" style="max-height: 100px;">
+              </div>
+              <small class="form-text text-muted">Leave empty to keep current icon</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Category</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Category Modal -->
+  <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Delete Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete the category "<span id="delete-category-name"></span>"?</p>
+          <p class="text-danger">This action cannot be undone. If events are associated with this category, deletion will not be possible.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteCategoryForm" action="" method="POST">
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Edit Category Modal
+      const editCategoryModal = document.getElementById('editCategoryModal');
+      editCategoryModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const id = button.getAttribute('data-id');
+        const name = button.getAttribute('data-name');
+        const description = button.getAttribute('data-description');
+        const icon = button.getAttribute('data-icon');
+        
+        const form = document.getElementById('editCategoryForm');
+        form.action = `/events/categories/${id}/update`;
+        
+        document.getElementById('edit-name').value = name;
+        document.getElementById('edit-description').value = description;
+        
+        const currentIconDiv = document.getElementById('current-icon');
+        const iconPreview = document.getElementById('icon-preview');
+        
+        if (icon && icon !== '') {
+          currentIconDiv.classList.remove('d-none');
+          iconPreview.src = icon;
+        } else {
+          currentIconDiv.classList.add('d-none');
+        }
+      });
+      
+      // Delete Category Modal
+      const deleteCategoryModal = document.getElementById('deleteCategoryModal');
+      deleteCategoryModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const id = button.getAttribute('data-id');
+        const name = button.getAttribute('data-name');
+        
+        document.getElementById('delete-category-name').textContent = name;
+        
+        const form = document.getElementById('deleteCategoryForm');
+        form.action = `/events/categories/${id}/delete`;
+      });
+    });
+  </script>

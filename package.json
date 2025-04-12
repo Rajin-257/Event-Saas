@@ -1,43 +1,48 @@
 {
     "name": "event-management-system",
     "version": "1.0.0",
-    "description": "Professional Event Management System with ticketing and user roles",
+    "description": "Comprehensive event management system with ticket booking, inventory, and reporting",
     "main": "app.js",
     "scripts": {
         "start": "node app.js",
         "dev": "nodemon app.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
+    "keywords": [
+        "event",
+        "management",
+        "booking",
+        "ticketing",
+        "inventory"
+    ],
+    "author": "",
+    "license": "ISC",
     "dependencies": {
-        "axios": "^1.8.4",
-        "bcryptjs": "^2.4.3",
+        "bcrypt": "^5.1.0",
+        "compression": "^1.7.4",
         "connect-flash": "^0.1.1",
+        "cookie-parser": "^1.4.6",
+        "cors": "^2.8.5",
         "dotenv": "^16.0.3",
         "ejs": "^3.1.9",
         "express": "^4.18.2",
+        "express-ejs-layouts": "^2.5.1",
+        "express-rate-limit": "^6.7.0",
         "express-session": "^1.17.3",
         "express-validator": "^7.0.1",
-        "method-override": "^3.0.0",
+        "helmet": "^7.0.0",
+        "jsonwebtoken": "^9.0.0",
         "moment": "^2.29.4",
+        "morgan": "^1.10.0",
         "multer": "^1.4.5-lts.1",
-        "mysql2": "^3.2.0",
-        "nodemailer": "^6.10.0",
-        "passport": "^0.6.0",
-        "passport-local": "^1.0.0",
-        "qrcode": "^1.5.1",
-        "sequelize": "^6.30.0",
+        "mysql2": "^3.3.0",
+        "nodemailer": "^6.9.1",
+        "qrcode": "^1.5.3",
+        "sequelize": "^6.31.1",
+        "twilio": "^4.11.0",
         "uuid": "^9.0.0"
     },
     "devDependencies": {
         "nodemon": "^2.0.22"
-    },
-    "keywords": [
-        "event",
-        "management",
-        "ticketing",
-        "nodejs",
-        "mysql"
-    ],
-    "author": "",
-    "license": "MIT"
+    }
 }

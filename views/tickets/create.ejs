@@ -1,0 +1,101 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Create Ticket - <%= event.title %></h1>
+    <a href="/tickets/event/<%= event.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Tickets
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <form action="/tickets/event/<%= event.id %>/create" method="POST">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="type" class="form-label">Ticket Type</label>
+              <input type="text" class="form-control" id="type" name="type" required placeholder="e.g. VIP, Regular, Early Bird">
+            </div>
+            
+            <div class="mb-3">
+              <label for="price" class="form-label">Price</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="quantity" class="form-label">Total Quantity</label>
+              <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+              <div class="form-text">Maximum number of tickets available for sale</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional description of what this ticket includes"></textarea>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="saleStartDate" class="form-label">Sale Start Date</label>
+              <input type="datetime-local" class="form-control" id="saleStartDate" name="saleStartDate" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="saleEndDate" class="form-label">Sale End Date</label>
+              <input type="datetime-local" class="form-control" id="saleEndDate" name="saleEndDate" required>
+              <div class="form-text">Must be before the event start date</div>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isActive" name="isActive" checked>
+              <label class="form-check-label" for="isActive">Ticket is Active</label>
+              <div class="form-text">Inactive tickets won't be available for purchase</div>
+            </div>
+            
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Event Details</h6>
+              </div>
+              <div class="card-body">
+                <p><strong>Event:</strong> <%= event.title %></p>
+                <p><strong>Dates:</strong> <%= dateFormatter.formatDate(event.startDate) %> to <%= dateFormatter.formatDate(event.endDate) %></p>
+                <p><strong>Venue:</strong> <%= event.venue %></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="/tickets/event/<%= event.id %>" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Create Ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set default sale dates based on event dates
+      const eventStart = new Date('<%= event.startDate %>');
+      const eventEnd = new Date('<%= event.endDate %>');
+      
+      // Sale start: Now
+      const saleStart = new Date();
+      document.getElementById('saleStartDate').value = saleStart.toISOString().slice(0, 16);
+      
+      // Sale end: Event start date
+      document.getElementById('saleEndDate').value = eventStart.toISOString().slice(0, 16);
+      
+      // Validate sale end date is before event start
+      document.querySelector('form').addEventListener('submit', function(e) {
+        const saleEndDate = new Date(document.getElementById('saleEndDate').value);
+        
+        if (saleEndDate > eventStart) {
+          if (!confirm('The sale end date is after the event start date. Are you sure you want to continue?')) {
+            e.preventDefault();
+          }
+        }
+      });
+    });
+  </script>

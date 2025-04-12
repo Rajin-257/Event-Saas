@@ -1,0 +1,93 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Bookings</h1>
+    <a href="/events" class="btn btn-primary">
+      <i class="fas fa-search me-1"></i> Find Events
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <% if (bookings && bookings.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Event</th>
+                <th>Ticket</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% bookings.forEach(booking => { %>
+                <tr>
+                  <td>#<%= booking.id %></td>
+                  <td><%= booking.event.title %></td>
+                  <td><%= booking.quantity %> x <%= booking.ticket.type %></td>
+                  <td>
+                    <span class="badge bg-<%= booking.status === 'Confirmed' ? 'success' : (booking.status === 'Pending' ? 'warning' : 'danger') %>">
+                      <%= booking.status %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-<%= booking.paymentStatus === 'Paid' ? 'success' : (booking.paymentStatus === 'Pending' ? 'warning' : 'danger') %>">
+                      <%= booking.paymentStatus %>
+                    </span>
+                  </td>
+                  <td>$<%= booking.totalAmount %></td>
+                  <td><%= dateFormatter.formatDate(booking.createdAt) %></td>
+                  <td>
+                    <a href="/bookings/<%= booking.id %>" class="btn btn-sm btn-outline-primary">View</a>
+                    <% if (booking.status !== 'Cancelled' && new Date(booking.event.startDate) > new Date()) { %>
+                      <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelBookingModal<%= booking.id %>">
+                        Cancel
+                      </button>
+                      
+                      <!-- Cancel Modal -->
+                      <div class="modal fade" id="cancelBookingModal<%= booking.id %>" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title">Cancel Booking</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                              <p>Are you sure you want to cancel your booking for "<%= booking.event.title %>"?</p>
+                              <% if (booking.paymentStatus === 'Paid') { %>
+                                <div class="alert alert-info">
+                                  <i class="fas fa-info-circle me-2"></i> Your payment will be refunded according to our refund policy.
+                                </div>
+                              <% } %>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Booking</button>
+                              <form action="/bookings/<%= booking.id %>/cancel" method="POST">
+                                <button type="submit" class="btn btn-danger">Cancel Booking</button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="text-center py-5">
+          <i class="fas fa-ticket-alt fa-5x text-muted mb-3"></i>
+          <h4>You don't have any bookings yet</h4>
+          <p class="text-muted mb-4">Explore our events and book your tickets!</p>
+          <a href="/events" class="btn btn-primary btn-lg">
+            <i class="fas fa-search me-1"></i> Browse Events
+          </a>
+        </div>
+      <% } %>
+    </div>
+  </div>

@@ -1,668 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <%- include('../partials/title-meta', { title: title }) %>
-    <%- include('../partials/head-css') %>
-    
-    <!-- Flatpickr date-time picker CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
-    
-    <!-- Dropzone CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
-    
-    <style>
-        /* Form Section Styles */
-        .form-section {
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .form-section:last-child {
-            border-bottom: none;
-        }
-
-        .section-title {
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            font-size: 1.1rem;
-            color: #566a7f;
-        }
-
-        .section-title i {
-            margin-right: 0.75rem;
-            font-size: 1.25rem;
-        }
-
-        /* Required Field Indicator */
-        .required-label::after {
-            content: " *";
-            color: #ff5b5b;
-        }
-
-        /* Image Upload Area */
-        .avatar-upload {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-            padding: 2rem 1rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .avatar-upload:hover {
-            border-color: #696cff;
-            background-color: #f0f0ff;
-        }
-
-        .avatar-upload i {
-            font-size: 2.5rem;
-            color: #6c757d;
-            margin-bottom: 1rem;
-        }
-
-        /* Image Preview */
-        .image-preview {
-            position: relative;
-            margin-top: 1rem;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-
-        .image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .image-preview .change-image {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.8);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .image-preview .change-image:hover {
-            background: white;
-            transform: scale(1.1);
-        }
-
-        /* Form Controls */
-        .form-control:focus, .form-select:focus {
-            border-color: #696cff;
-            box-shadow: 0 0 0 0.15rem rgba(105, 108, 255, 0.25);
-        }
-
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-            .btn-group {
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .btn-group .btn, 
-            .btn-group form {
-                margin-bottom: 0.5rem;
-                width: 100%;
-            }
-
-            .section-title {
-                font-size: 1rem;
-            }
-        }
-
-        /* Status Indicators */
-        .status-indicator {
-            margin-bottom: 0.75rem;
-        }
-
-        .status-indicator i {
-            margin-right: 0.5rem;
-        }
-
-        /* Button Improvements */
-        .btn {
-            border-radius: 0.375rem;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background-color: #696cff;
-            border-color: #696cff;
-        }
-
-        .btn-primary:hover {
-            background-color: #5f64e6;
-            border-color: #5f64e6;
-        }
-
-        /* Flatpickr Customization */
-        .flatpickr-calendar {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-            border-radius: 0.5rem !important;
-        }
-
-        .flatpickr-day.selected {
-            background: #696cff !important;
-            border-color: #696cff !important;
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Begin page -->
-    <div class="wrapper">
-        <%- include('../partials/menu') %>
-        
-        <!-- ============================================================== -->
-        <!-- Start Page Content here -->
-        <!-- ============================================================== -->
-        <div class="page-content">
-            <div class="page-container">
-                <!-- Page title -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="page-title-box">
-                            <div class="page-title-right">
-                                <ol class="breadcrumb m-0">
-                                    <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-                                    <li class="breadcrumb-item"><a href="/events">Events</a></li>
-                                    <li class="breadcrumb-item active">Edit Event</li>
-                                </ol>
-                            </div>
-                            <h4 class="page-title">Edit Event</h4>
-                        </div>
-                    </div>
-
-                    <!-- Flash messages -->
-                <%- include('../partials/messages') %>
-                
-                <!-- Event Status and Controls -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card mb-3">
-                            <div class="card-body">
-                                <div class="row align-items-center">
-                                    <div class="col-md-6">
-                                        <div class="status-indicator">
-                                            <i class="ri-information-line"></i>
-                                            <strong>Event ID:</strong>
-                                            <span class="badge bg-light text-dark ms-2"><%= event.id %></span>
-                                        </div>
-                                        
-                                        <div class="status-indicator">
-                                            <i class="ri-calendar-check-line"></i>
-                                            <strong>Publication Status:</strong>
-                                            <% if (event.isPublished) { %>
-                                                <span class="badge bg-success ms-2">Published</span>
-                                            <% } else { %>
-                                                <span class="badge bg-warning ms-2">Draft</span>
-                                            <% } %>
-                                        </div>
-                                        
-                                        <div class="status-indicator">
-                                            <i class="ri-flag-line"></i>
-                                            <strong>Event Status:</strong>
-                                            <span class="badge ms-2
-                                                <%= event.status === 'draft' ? 'bg-secondary' : '' %>
-                                                <%= event.status === 'upcoming' ? 'bg-info' : '' %>
-                                                <%= event.status === 'ongoing' ? 'bg-primary' : '' %>
-                                                <%= event.status === 'completed' ? 'bg-success' : '' %>
-                                                <%= event.status === 'cancelled' ? 'bg-danger' : '' %>
-                                            "><%= event.status.charAt(0).toUpperCase() + event.status.slice(1) %></span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                                        <div class="btn-group">
-                                            <a href="/events/<%= event.id %>" class="btn btn-outline-primary me-md-2 mb-2 mb-md-0">
-                                                <i class="ri-eye-line me-1"></i> View Event
-                                            </a>
-                                            
-                                            <% if (!event.isPublished) { %>
-                                                <form action="/events/<%= event.id %>/publish" method="POST" class="d-inline me-md-2 mb-2 mb-md-0">
-                                                    <button type="submit" class="btn btn-success w-100">
-                                                        <i class="ri-send-plane-line me-1"></i> Publish Event
-                                                    </button>
-                                                </form>
-                                            <% } else { %>
-                                                <form action="/events/<%= event.id %>/publish" method="POST" class="d-inline me-md-2 mb-2 mb-md-0">
-                                                    <button type="submit" class="btn btn-warning w-100">
-                                                        <i class="ri-draft-line me-1"></i> Unpublish Event
-                                                    </button>
-                                                </form>
-                                            <% } %>
-                                            
-                                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteEventModal">
-                                                <i class="ri-delete-bin-line me-1"></i> Delete Event
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Event Management Tabs -->
-                <ul class="nav nav-tabs nav-bordered" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#edit-tab" role="tab">
-                            <i class="ri-edit-box-line me-1"></i> Edit Details
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/events/<%= event.id %>/speakers">
-                            <i class="ri-user-voice-line me-1"></i> Manage Speakers
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tickets/events/<%= event.id %>/tickets">
-                            <i class="ri-ticket-2-line me-1"></i> Manage Tickets
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/registrations/<%= event.id %>">
-                            <i class="ri-group-line me-1"></i> Attendees
-                        </a>
-                    </li>
-                </ul>
-                
-                <!-- Tab Content -->
-                <div class="tab-content mt-3">
-                    <!-- Edit Details Tab -->
-                    <div class="tab-pane active show" id="edit-tab">
-                        <!-- Edit Event Form -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <form action="/events/<%= event.id %>/edit" method="POST" enctype="multipart/form-data">
-                                            
-                                            <!-- Basic Information Section -->
-                                            <div class="form-section">
-                                                <h5 class="section-title">
-                                                    <i class="ri-information-line"></i>
-                                                    Basic Information
-                                                </h5>
-                                                
-                                                <div class="row g-3">
-                                                    <div class="col-lg-12">
-                                                        <label for="title" class="form-label required-label">Event Title</label>
-                                                        <input type="text" class="form-control" id="title" name="title" placeholder="Enter event title" value="<%= event.title %>" required>
-                                                        <div class="form-text">Choose a clear, descriptive title for your event (100 characters max)</div>
-                                                    </div>
-                                                    
-                                                    <div class="col-lg-4">
-                                                        <label for="category" class="form-label required-label">Category</label>
-                                                        <select class="form-select" id="category" name="category" required>
-                                                            <option value="" disabled>Select a category</option>
-                                                            <option value="concert" <%= event.category === 'concert' ? 'selected' : '' %>>Concert</option>
-                                                            <option value="seminar" <%= event.category === 'seminar' ? 'selected' : '' %>>Seminar</option>
-                                                            <option value="workshop" <%= event.category === 'workshop' ? 'selected' : '' %>>Workshop</option>
-                                                            <option value="conference" <%= event.category === 'conference' ? 'selected' : '' %>>Conference</option>
-                                                            <option value="exhibition" <%= event.category === 'exhibition' ? 'selected' : '' %>>Exhibition</option>
-                                                            <option value="other" <%= event.category === 'other' ? 'selected' : '' %>>Other</option>
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    <div class="col-lg-4">
-                                                        <label for="maxAttendees" class="form-label">Maximum Attendees</label>
-                                                        <input type="number" class="form-control" id="maxAttendees" name="maxAttendees" min="1" max="100000" value="<%= event.maxAttendees %>">
-                                                        <div class="form-text">Set the maximum capacity for this event</div>
-                                                    </div>
-                                                    
-                                                    <div class="col-lg-4">
-                                                        <label for="statuss" class="form-label">Event Status</label>
-                                                        <select class="form-select" id="statuss" name="status">
-                                                            <option value="draft" <%= event.status === 'draft' ? 'selected' : '' %>>Draft</option>
-                                                            <option value="upcoming" <%= event.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
-                                                            <option value="ongoing" <%= event.status === 'ongoing' ? 'selected' : '' %>>Ongoing</option>
-                                                            <option value="completed" <%= event.status === 'completed' ? 'selected' : '' %>>Completed</option>
-                                                            <option value="cancelled" <%= event.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
-                                                        </select>
-                                                    </div>
-                                                    
-                                                    <div class="col-lg-12">
-                                                        <label for="description" class="form-label required-label">Event Description</label>
-                                                        <textarea class="form-control" id="description" name="description" rows="6" placeholder="Provide detailed information about your event" required><%= event.description %></textarea>
-                                                        <div class="form-text">Describe your event, what attendees can expect, and any important details</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Date and Time Section -->
-                                            <div class="form-section">
-                                                <h5 class="section-title">
-                                                    <i class="ri-calendar-2-line"></i>
-                                                    Date and Time
-                                                </h5>
-                                                
-                                                <div class="row g-3">
-                                                    <div class="col-lg-6">
-                                                        <label for="startDate" class="form-label required-label">Start Date & Time</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-text"><i class="ti ti-calendar-month"></i></span>
-                                                            <input type="text" class="form-control datepicker" id="startDate" name="startDate" 
-                                                                value="<%= new Date(event.startDate).toISOString().slice(0, 16).replace('T', ' ') %>" required>
-                                                        </div>
-                                                        <div class="form-text">When will your event begin?</div>
-                                                    </div>
-                                                    
-                                                    <div class="col-lg-6">
-                                                        <label for="endDate" class="form-label required-label">End Date & Time</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-text"><i class="ti ti-calendar-month"></i></span>
-                                                            <input type="text" class="form-control datepicker" id="endDate" name="endDate" 
-                                                                value="<%= new Date(event.endDate).toISOString().slice(0, 16).replace('T', ' ') %>" required>
-                                                        </div>
-                                                        <div class="form-text">When will your event end?</div>
-                                                    </div>
-                                                </div>
-                                            </div>                                            
-                                            
-                                            <!-- Location Section -->
-                                            <div class="form-section">
-                                                <h5 class="section-title">
-                                                    <i class="ri-map-pin-line"></i>
-                                                    Location
-                                                </h5>
-                                                
-                                                <div class="row g-3">
-                                                    <div class="col-lg-6">
-                                                        <label for="venue" class="form-label required-label">Venue Name</label>
-                                                        <input type="text" class="form-control" id="venue" name="venue" placeholder="Enter venue name" value="<%= event.venue %>" required>
-                                                        <div class="form-text">Name of the building, facility, or location</div>
-                                                    </div>
-                                                    
-                                                    <div class="col-lg-6">
-                                                        <label for="venueAddress" class="form-label required-label">Address</label>
-                                                        <input type="text" class="form-control" id="venueAddress" name="venueAddress" placeholder="Enter full address" value="<%= event.venueAddress %>" required>
-                                                        <div class="form-text">Full street address including city, state, and zip code</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Banner Image Section -->
-                                            <div class="form-section">
-                                                <h5 class="section-title">
-                                                    <i class="bi bi-image"></i>
-                                                    Event Banner
-                                                </h5>
-
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <!-- File Input (hidden) -->
-                                                        <input type="file" name="eventBanner" id="eventBanner" class="d-none" accept="image/*">
-
-                                                        <!-- Upload Area -->
-                                                        <div class="avatar-upload">
-                                                            <i class="bi bi-cloud-upload"></i>
-                                                            <p class="mt-2 mb-0">Click to upload a banner image</p>
-                                                            <p class="text-muted small">Recommended size: 1200×600px</p>
-                                                        </div>
-                                                        <div id="file-name" class="text-center mt-2 text-muted"></div>
-
-                                                        <!-- Image Preview (hidden initially) -->
-                                                        <div class="image-preview mt-3" id="imagePreview" style="display: none;">
-                                                            <img id="preview" src="<%= event.bannerUrl || '#' %>" alt="Event Banner">
-                                                            <div class="change-image" title="Change Image">
-                                                                <i class="bi bi-pencil"></i>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Cancellation Policy Section -->
-                                            <div class="form-section">
-                                                <h5 class="section-title">
-                                                    <i class="ri-file-list-3-line"></i>
-                                                    Cancellation Policy
-                                                </h5>
-                                                
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <textarea class="form-control" id="cancellationPolicy" name="cancellationPolicy" rows="4" placeholder="Describe your cancellation policy (optional)"><%= event.cancellationPolicy || '' %></textarea>
-                                                        <div class="form-text">
-                                                            Clearly explain your refund and cancellation policy to attendees. This information will be visible on your event page.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Action Buttons -->
-                                            <div class="row mt-4">
-                                                <div class="col-12">
-                                                    <div class="float-end">
-                                                        <a href="/events/<%= event.id %>" class="btn btn-light me-2">Cancel</a>
-                                                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Delete Event Modal -->
-                <div class="modal fade" id="deleteEventModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Delete Event</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="text-center mb-4">
-                                    <i class="ri-alert-line text-danger" style="font-size: 3rem;"></i>
-                                    <h4 class="mt-2">Are you sure?</h4>
-                                    <p class="text-muted">
-                                        Do you really want to delete the event "<%= event.title %>"? This action cannot be undone.
-                                    </p>
-                                </div>
-                                
-                                <% if (event.ticketTypes && event.ticketTypes.length > 0) { %>
-                                    <div class="alert alert-warning">
-                                        <i class="ri-information-line me-2"></i>
-                                        <strong>Warning:</strong> This event has <%= event.ticketTypes.length %> ticket types. 
-                                        Deleting this event will also delete all tickets and registrations.
-                                    </div>
-                                <% } %>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                <form action="/events/<%= event.id %>?_method=DELETE" method="POST">
-                                    <button type="submit" class="btn btn-danger">
-                                        <i class="ri-delete-bin-line me-1"></i> Delete Event
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Event</h1>
+    <a href="/events/<%= event.id %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Event
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <form action="/events/<%= event.id %>/update" method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label for="title" class="form-label">Event Title</label>
+              <input type="text" class="form-control" id="title" name="title" value="<%= event.title %>" required>
             </div>
-            <!-- container -->
-            <%- include('../partials/footer') %>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="5" required><%= event.description %></textarea>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="categoryId" class="form-label">Category</label>
+                  <select class="form-select" id="categoryId" name="categoryId" required>
+                    <option value="">Select Category</option>
+                    <% categories.forEach(category => { %>
+                      <option value="<%= category.id %>" <%= event.categoryId == category.id ? 'selected' : '' %>><%= category.name %></option>
+                    <% }); %>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="status" class="form-label">Status</label>
+                  <select class="form-select" id="status" name="status" required>
+                    <option value="Upcoming" <%= event.status === 'Upcoming' ? 'selected' : '' %>>Upcoming</option>
+                    <option value="Ongoing" <%= event.status === 'Ongoing' ? 'selected' : '' %>>Ongoing</option>
+                    <option value="Completed" <%= event.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="startDate" class="form-label">Start Date</label>
+                  <input type="datetime-local" class="form-control" id="startDate" name="startDate" value="<%= new Date(event.startDate).toISOString().slice(0, 16) %>" required>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="endDate" class="form-label">End Date</label>
+                  <input type="datetime-local" class="form-control" id="endDate" name="endDate" value="<%= new Date(event.endDate).toISOString().slice(0, 16) %>" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="venue" class="form-label">Venue</label>
+              <input type="text" class="form-control" id="venue" name="venue" value="<%= event.venue %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea class="form-control" id="address" name="address" rows="2" required><%= event.address %></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label for="capacity" class="form-label">Capacity</label>
+              <input type="number" class="form-control" id="capacity" name="capacity" min="1" value="<%= event.capacity %>" required>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="mb-3">
+              <label for="featuredImage" class="form-label">Featured Image</label>
+              <input type="file" class="form-control" id="featuredImage" name="featuredImage" accept="image/*">
+              <div class="mt-2">
+                <% if (event.featuredImage) { %>
+                  <div id="imagePreview" class="border rounded p-2 text-center">
+                    <img src="<%= event.featuredImage %>" alt="<%= event.title %>" class="img-fluid">
+                  </div>
+                <% } else { %>
+                  <div id="imagePreview" class="border rounded p-2 text-center d-none">
+                    <img id="preview" src="#" alt="Preview" class="img-fluid">
+                  </div>
+                  <div id="noImageSelected" class="border rounded p-5 text-center text-muted">
+                    <i class="fas fa-image fa-3x mb-3"></i>
+                    <p>No image selected</p>
+                  </div>
+                <% } %>
+                <small class="form-text text-muted">Leave empty to keep current image</small>
+              </div>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isPublished" name="isPublished" <%= event.isPublished ? 'checked' : '' %>>
+              <label class="form-check-label" for="isPublished">Publish Event</label>
+              <div class="form-text">Unpublished events won't be visible to users.</div>
+            </div>
+          </div>
         </div>
-        <!-- ============================================================== -->
-        <!-- End Page content -->
-        <!-- ============================================================== -->
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="/events/<%= event.id %>" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Update Event</button>
+        </div>
+      </form>
     </div>
-    <!-- END wrapper -->
-
-    <!-- Flatpickr date-time picker JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    
-    <!-- Dropzone JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
-
-   <script>
-    // Wait for DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Image upload preview
-            setupImageUpload();
-
-            // Initialize date pickers
-            setupDatePickers();
-
-            // Form validation
-            setupFormValidation();
-        });
-
-        /**
-         * Setup image upload with preview
-         */
-        function setupImageUpload() {
-            const fileInput = document.getElementById('eventBanner');
-            const previewContainer = document.getElementById('imagePreview');
-            const previewImage = document.getElementById('preview');
-            const uploadArea = document.querySelector('.avatar-upload');
-            const fileNameDisplay = document.getElementById('file-name');
-
-            // Make the entire upload area clickable
-            uploadArea.addEventListener('click', function() {
-                fileInput.click();
-            });
-
-            // Handle file selection
-            fileInput.addEventListener('change', function() {
-                const file = this.files[0];
-
-                if (file) {
-                    // Display file name
-                    fileNameDisplay.textContent = file.name;
-
-                    // Create and display preview
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImage.src = e.target.result;
-                        previewContainer.style.display = 'block';
-                        uploadArea.style.display = 'none'; // Hide upload area when preview is shown
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    fileNameDisplay.textContent = '';
-                    previewContainer.style.display = 'none';
-                    uploadArea.style.display = 'block';
-                }
-            });
-
-            // If there's an existing image, show it
-            if (previewImage.src && previewImage.src !== '#' && previewImage.src !== window.location.href) {
-                previewContainer.style.display = 'block';
-                uploadArea.style.display = 'none';
-            }
+  </div>
+  
+  <script>
+    document.getElementById('featuredImage').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const imgPreview = document.getElementById('imagePreview');
+          const noImgSelected = document.getElementById('noImageSelected');
+          
+          if (imgPreview.querySelector('img')) {
+            imgPreview.querySelector('img').src = e.target.result;
+          } else {
+            document.getElementById('preview').src = e.target.result;
+          }
+          
+          imgPreview.classList.remove('d-none');
+          if (noImgSelected) noImgSelected.classList.add('d-none');
         }
-
-        /**
-         * Setup date picker fields
-         */
-        function setupDatePickers() {
-            // Common config for both date pickers
-            const dateConfig = {
-                enableTime: true,
-                dateFormat: "Y-m-d H:i",
-                time_24hr: true,
-                allowInput: true
-            };
-
-            // Start date picker
-            const startPicker = flatpickr("#startDate", {
-                ...dateConfig,
-                onChange: function(selectedDates) {
-                    // Update end date min when start date changes
-                    if (selectedDates.length > 0) {
-                        endPicker.set("minDate", selectedDates[0]);
-                    }
-                }
-            });
-
-            // End date picker
-            const endPicker = flatpickr("#endDate", {
-                ...dateConfig,
-                minDate: document.querySelector("#startDate").value || "today"
-            });
-        }
-
-        /**
-         * Setup form validation
-         */
-        function setupFormValidation() {
-            const form = document.querySelector('form');
-
-            // Listen for form submission
-            form.addEventListener('submit', function(event) {
-                // Check if form is valid
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-
-                    // Find all invalid fields
-                    const invalidFields = form.querySelectorAll(':invalid');
-
-                    // Focus the first invalid field
-                    if (invalidFields.length > 0) {
-                        invalidFields[0].focus();
-
-                        // Smooth scroll to the first invalid field
-                        invalidFields[0].scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center' 
-                        });
-                    }
-                }
-            });
-
-            // Live validation on input
-            const requiredInputs = form.querySelectorAll('[required]');
-            requiredInputs.forEach(input => {
-                input.addEventListener('blur', function() {
-                    validateField(this);
-                });
-
-                input.addEventListener('input', function() {
-                    if (this.classList.contains('is-invalid')) {
-                        validateField(this);
-                    }
-                });
-            });
-        }
-
-        /**
-         * Validate a single form field
-         * @param {HTMLElement} field - The field to validate
-         */
-        function validateField(field) {
-            if (field.checkValidity()) {
-                field.classList.remove('is-invalid');
-                field.classList.add('is-valid');
-            } else {
-                field.classList.remove('is-valid');
-                field.classList.add('is-invalid');
-            }
-        }
-   </script>
-
-    <%- include('../partials/footer-scripts') %>
-</body>
-</html>
-                
+        
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>

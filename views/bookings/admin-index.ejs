@@ -1,0 +1,123 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>All Bookings</h1>
+    <a href="/dashboard" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+  
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Filter Bookings</h5>
+    </div>
+    <div class="card-body">
+      <form action="/bookings/admin/all" method="GET">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status">
+              <option value="">All Statuses</option>
+              <option value="Confirmed" <%= filters.status === 'Confirmed' ? 'selected' : '' %>>Confirmed</option>
+              <option value="Pending" <%= filters.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+              <option value="Cancelled" <%= filters.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+            <option value="Refunded" <%= filters.status === 'Refunded' ? 'selected' : '' %>>Refunded</option>
+          </select>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <label for="eventId" class="form-label">Event</label>
+          <select class="form-select" id="eventId" name="eventId">
+            <option value="">All Events</option>
+            <% events.forEach(event => { %>
+              <option value="<%= event.id %>" <%= filters.eventId == event.id ? 'selected' : '' %>><%= event.title %></option>
+            <% }); %>
+          </select>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <label for="paymentMethod" class="form-label">Payment Method</label>
+          <select class="form-select" id="paymentMethod" name="paymentMethod">
+            <option value="">All Methods</option>
+            <option value="Bkash" <%= filters.paymentMethod === 'Bkash' ? 'selected' : '' %>>bKash</option>
+            <option value="Nagad" <%= filters.paymentMethod === 'Nagad' ? 'selected' : '' %>>Nagad</option>
+            <option value="Card" <%= filters.paymentMethod === 'Card' ? 'selected' : '' %>>Card</option>
+            <option value="Cash" <%= filters.paymentMethod === 'Cash' ? 'selected' : '' %>>Cash</option>
+          </select>
+        </div>
+        
+        <div class="col-md-3 mb-3 d-flex align-items-end">
+          <div class="d-grid w-100">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Customer</th>
+            <th>Event</th>
+            <th>Ticket</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (bookings && bookings.length > 0) { %>
+            <% bookings.forEach(booking => { %>
+              <tr>
+                <td>#<%= booking.id %></td>
+                <td>
+                  <%= booking.user.fullName %><br>
+                  <small class="text-muted"><%= booking.user.email %></small>
+                </td>
+                <td><%= booking.event.title %></td>
+                <td><%= booking.quantity %> ticket(s)</td>
+                <td>
+                  <span class="badge bg-<%= booking.status === 'Confirmed' ? 'success' : (booking.status === 'Pending' ? 'warning' : 'danger') %>">
+                    <%= booking.status %>
+                  </span>
+                  <% if (booking.isCheckedIn) { %>
+                    <br><span class="badge bg-info">Checked In</span>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="badge bg-<%= booking.paymentStatus === 'Paid' ? 'success' : (booking.paymentStatus === 'Pending' ? 'warning' : 'danger') %>">
+                    <%= booking.paymentStatus %>
+                  </span>
+                  <br>
+                  <small><%= booking.paymentMethod %></small>
+                </td>
+                <td>$<%= booking.totalAmount %></td>
+                <td><%= dateFormatter.formatDate(booking.createdAt) %></td>
+                <td>
+                  <a href="/bookings/<%= booking.id %>" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr>
+              <td colspan="9" class="text-center py-4">No bookings found matching your criteria.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination -->
+    <% if (pagination && pagination.pageCount > 1) { %>
+      <%- include('../partials/pagination') %>
+    <% } %>
+  </div>
+</div>

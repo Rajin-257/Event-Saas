@@ -1,0 +1,242 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><%= event.title %></h1>
+    <div>
+      <a href="/events" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-1"></i> Back to Events
+      </a>
+      <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+        <a href="/events/<%= event.id %>/edit" class="btn btn-warning">
+          <i class="fas fa-edit me-1"></i> Edit
+        </a>
+      <% } %>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <% if (event.featuredImage) { %>
+          <img src="<%= event.featuredImage %>" class="card-img-top" alt="<%= event.title %>">
+        <% } %>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : (event.status === 'Upcoming' ? 'primary' : 'secondary') %>">
+                <%= event.status %>
+              </span>
+              <% if (event.isPublished) { %>
+                <span class="badge bg-success">Published</span>
+              <% } else { %>
+                <span class="badge bg-danger">Unpublished</span>
+              <% } %>
+            </div>
+            <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+              <div>
+                <form action="/events/<%= event.id %>/toggle-publish-status" method="POST" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-<%= event.isPublished ? 'danger' : 'success' %>">
+                    <i class="fas <%= event.isPublished ? 'fa-eye-slash' : 'fa-eye' %> me-1"></i>
+                    <%= event.isPublished ? 'Unpublish' : 'Publish' %>
+                  </button>
+                </form>
+                
+                <div class="dropdown d-inline-block">
+                  <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Change Status
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="statusDropdown">
+                    <li>
+                      <form action="/events/<%= event.id %>/status" method="POST">
+                        <input type="hidden" name="status" value="Upcoming">
+                        <button type="submit" class="dropdown-item">Upcoming</button>
+                      </form>
+                    </li>
+                    <li>
+                      <form action="/events/<%= event.id %>/status" method="POST">
+                        <input type="hidden" name="status" value="Ongoing">
+                        <button type="submit" class="dropdown-item">Ongoing</button>
+                      </form>
+                    </li>
+                    <li>
+                      <form action="/events/<%= event.id %>/status" method="POST">
+                        <input type="hidden" name="status" value="Completed">
+                        <button type="submit" class="dropdown-item">Completed</button>
+                      </form>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            <% } %>
+          </div>
+          
+          <p class="card-text"><%= event.description %></p>
+          
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <h5><i class="fas fa-info-circle"></i> Event Details</h5>
+              <table class="table table-sm">
+                <tr>
+                  <th width="40%">Category:</th>
+                  <td><%= event.category ? event.category.name : 'N/A' %></td>
+                </tr>
+                <tr>
+                  <th>Start Date:</th>
+                  <td><%= dateFormatter.formatDateTime(event.startDate) %></td>
+                </tr>
+                <tr>
+                  <th>End Date:</th>
+                  <td><%= dateFormatter.formatDateTime(event.endDate) %></td>
+                </tr>
+                <tr>
+                  <th>Capacity:</th>
+                  <td><%= event.capacity %> attendees</td>
+                </tr>
+              </table>
+            </div>
+            
+            <div class="col-md-6">
+              <h5><i class="fas fa-map-marker-alt"></i> Venue Information</h5>
+              <table class="table table-sm">
+                <tr>
+                  <th width="40%">Venue:</th>
+                  <td><%= event.venue %></td>
+                </tr>
+                <tr>
+                  <th>Address:</th>
+                  <td><%= event.address %></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Admin Actions</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <a href="/tickets/event/<%= event.id %>" class="btn btn-outline-primary">
+                <i class="fas fa-ticket-alt me-1"></i> Manage Tickets
+              </a>
+              <a href="/events/<%= event.id %>/sponsors" class="btn btn-outline-primary">
+                <i class="fas fa-handshake me-1"></i> Manage Sponsors
+              </a>
+              <a href="/reports/event-performance/<%= event.id %>" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-1"></i> View Reports
+              </a>
+              <a href="/events/<%= event.id %>/clone" class="btn btn-outline-primary">
+                <i class="fas fa-copy me-1"></i> Clone Event
+              </a>
+              <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteEventModal">
+                <i class="fas fa-trash-alt me-1"></i> Delete Event
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteEventModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Delete Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure you want to delete the event "<%= event.title %>"?
+                <p class="text-danger mt-2">This action cannot be undone and will remove all associated tickets and bookings.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="/events/<%= event.id %>/delete" method="POST">
+                  <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+      
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Tickets</h5>
+        </div>
+        <div class="card-body">
+          <% if (event.tickets && event.tickets.length > 0) { %>
+            <div class="list-group list-group-flush">
+              <% event.tickets.forEach(ticket => { %>
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="mb-0"><%= ticket.type %></h6>
+                    <span class="badge bg-<%= ticket.isActive ? 'success' : 'danger' %>">
+                      <%= ticket.isActive ? 'Active' : 'Inactive' %>
+                    </span>
+                  </div>
+                  <p class="mb-1">
+                    <strong>Price:</strong> $<%= ticket.price %><br>
+                    <strong>Sold:</strong> <%= ticket.quantitySold %> / <%= ticket.quantity %>
+                  </p>
+                  <div class="progress mb-2" style="height: 5px;">
+                    <div class="progress-bar" role="progressbar" style="width: <%= (ticket.quantitySold / ticket.quantity) * 100 %>%"></div>
+                  </div>
+                  <small class="text-muted">
+                    Sale period: <%= dateFormatter.formatDate(ticket.saleStartDate) %> to <%= dateFormatter.formatDate(ticket.saleEndDate) %>
+                  </small>
+                </div>
+              <% }); %>
+            </div>
+            <div class="mt-3">
+              <a href="/tickets/event/<%= event.id %>" class="btn btn-primary btn-sm">View All Tickets</a>
+            </div>
+          <% } else { %>
+            <div class="alert alert-info">
+              No tickets created for this event yet.
+              <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+                <a href="/tickets/event/<%= event.id %>/create" class="alert-link">Create tickets</a>
+              <% } %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+      
+      <% if (event.sponsors && event.sponsors.length > 0) { %>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Sponsors</h5>
+          </div>
+          <div class="card-body">
+            <div class="row row-cols-2 g-3">
+              <% event.sponsors.forEach(sponsor => { %>
+                <div class="col text-center">
+                  <div class="card h-100">
+                    <% if (sponsor.logo) { %>
+                      <img src="<%= sponsor.logo %>" class="card-img-top p-2" alt="<%= sponsor.name %>" style="max-height: 80px; object-fit: contain;">
+                    <% } else { %>
+                      <div class="card-body pt-3 pb-0">
+                        <i class="fas fa-building fa-2x text-muted"></i>
+                      </div>
+                    <% } %>
+                    <div class="card-body pt-2">
+                      <h6 class="card-title mb-0"><%= sponsor.name %></h6>
+                      <p class="card-text">
+                        <small class="text-muted"><%= sponsor.type %></small>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+            <% if (user.role === 'SuperAdmin' || user.role === 'Admin') { %>
+              <div class="mt-3">
+                <a href="/events/<%= event.id %>/sponsors" class="btn btn-primary btn-sm">Manage Sponsors</a>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>

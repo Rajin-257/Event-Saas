@@ -1,316 +1,129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <%- include('../partials/title-meta', { title: title }) %>
-    <%- include('../partials/head-css') %>
-    
-    <!-- Flatpickr date-time picker CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
-    
-    <!-- Dropzone CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
-    
-    <style>
-        .form-section {
-            margin-bottom: 2rem;
-            padding-bottom: 2rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .form-section:last-child {
-            border-bottom: none;
-        }
-        
-        .section-title {
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title i {
-            margin-right: 0.75rem;
-            font-size: 1.25rem;
-        }
-        
-        .required-label::after {
-            content: " *";
-            color: #ff5b5b;
-        }
-        
-        .banner-preview {
-            width: 100%;
-            height: 200px;
-            margin-top: 1rem;
-            border-radius: 0.5rem;
-            background-color: #f5f7fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .banner-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .banner-preview .placeholder {
-            color: #adb5bd;
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        .dropzone {
-            border: 2px dashed #ccc;
-            border-radius: 0.5rem;
-            background: #f9f9f9;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .dropzone:hover {
-            border-color: #696cff;
-            background: #f0f0ff;
-        }
-        
-        .dropzone .dz-message {
-            margin: 1rem 0 0;
-        }
-        
-        .flatpickr-calendar {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-            border-radius: 0.5rem !important;
-        }
-        .avatar-upload {
-            text-align: center;
-            padding: 20px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Begin page -->
-    <div class="wrapper">
-        <%- include('../partials/menu') %>
-        
-        <!-- ============================================================== -->
-        <!-- Start Page Content here -->
-        <!-- ============================================================== -->
-        <div class="page-content">
-            <div class="page-container">
-                <!-- Page title -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="page-title-box">
-                            <div class="page-title-right">
-                                <ol class="breadcrumb m-0">
-                                    <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-                                    <li class="breadcrumb-item"><a href="/events">Events</a></li>
-                                    <li class="breadcrumb-item active">Create Event</li>
-                                </ol>
-                            </div>
-                            <h4 class="page-title">Create New Event</h4>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Flash messages -->
-                <%- include('../partials/messages') %>
-                
-                <!-- Create Event Form -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <form action="/events/create" method="POST" enctype="multipart/form-data">
-                                    
-                                    <!-- Basic Information Section -->
-                                    <div class="form-section">
-                                        <h5 class="section-title">
-                                            <i class="bi bi-info-circle me-2"></i>
-                                            Basic Information
-                                        </h5>
-                                        
-                                        <div class="row g-3">
-                                            <div class="col-lg-12">
-                                                <label for="title" class="form-label required-label">Event Title</label>
-                                                <input type="text" class="form-control" id="title" name="title" placeholder="Enter event title" required>
-                                                <div class="form-text">Choose a clear, descriptive title (100 characters max)</div>
-                                            </div>
-                                            
-                                            <div class="col-lg-6">
-                                                <label for="category" class="form-label required-label">Category</label>
-                                                <select class="form-select" id="category" name="category" required>
-                                                    <option value="" disabled selected>Select a category</option>
-                                                    <option value="concert">Concert</option>
-                                                    <option value="seminar">Seminar</option>
-                                                    <option value="workshop">Workshop</option>
-                                                    <option value="conference">Conference</option>
-                                                    <option value="exhibition">Exhibition</option>
-                                                    <option value="other">Other</option>
-                                                </select>
-                                            </div>
-                                            
-                                            <div class="col-lg-6">
-                                                <label for="maxAttendees" class="form-label">Maximum Attendees</label>
-                                                <input type="number" class="form-control" id="maxAttendees" name="maxAttendees" min="1" max="100000" value="100">
-                                                <div class="form-text">Set the maximum capacity for this event</div>
-                                            </div>
-                                            
-                                            <div class="col-lg-12">
-                                                <label for="description" class="form-label required-label">Event Description</label>
-                                                <textarea class="form-control" id="description" name="description" rows="4" placeholder="Provide detailed information about your event" required></textarea>
-                                                <div class="form-text">Describe what attendees can expect</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Date and Time Section -->
-                                    <div class="form-section">
-                                        <h5 class="section-title">
-                                            <i class="bi bi-calendar me-2"></i>
-                                            Date and Time
-                                        </h5>
-                                        
-                                        <div class="row g-3">
-                                            <div class="col-lg-6">
-                                                <label for="startDate" class="form-label required-label">Start Date & Time</label>
-                                                <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
-                                                <div class="form-text">When will your event begin?</div>
-                                            </div>
-                                            
-                                            <div class="col-lg-6">
-                                                <label for="endDate" class="form-label required-label">End Date & Time</label>
-                                                <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
-                                                <div class="form-text">When will your event end?</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Location Section -->
-                                    <div class="form-section">
-                                        <h5 class="section-title">
-                                            <i class="bi bi-geo-alt me-2"></i>
-                                            Location
-                                        </h5>
-                                        
-                                        <div class="row g-3">
-                                            <div class="col-lg-6">
-                                                <label for="venue" class="form-label required-label">Venue Name</label>
-                                                <input type="text" class="form-control" id="venue" name="venue" placeholder="Enter venue name" required>
-                                                <div class="form-text">Name of the building or facility</div>
-                                            </div>
-                                            
-                                            <div class="col-lg-6">
-                                                <label for="venueAddress" class="form-label required-label">Address</label>
-                                                <input type="text" class="form-control" id="venueAddress" name="venueAddress" placeholder="Enter full address" required>
-                                                <div class="form-text">Full street address including city and zip code</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Banner Image Section -->
-                                    <div class="form-section">
-                                        <h5 class="section-title">
-                                            <i class="bi bi-image me-2"></i>
-                                            Event Banner
-                                        </h5>
-                                        
-                                        <div class="row">
-                                            <div class="col-lg-12">
-                                                <div class="avatar-upload" style="display: block; max-width: 100%; height: 200px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;" onclick="document.getElementById('eventBanner').click()">
-                                                    <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #6c757d;"></i>
-                                                    <p class="mt-2 mb-0">Click to upload a banner image</p>
-                                                    <p class="text-muted small">Recommended size: 1200×600px</p>
-                                                </div>
-                                                <input type="file" name="eventBanner" id="eventBanner" class="d-none" accept="image/*">
-                                                <div id="file-name" class="text-center mb-3"></div>
-                                                
-                                                <!-- Image Preview -->
-                                                <div class="image-preview mt-3" id="imagePreview" style="display: none; max-width: 100%; height: 200px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-                                                    <img id="preview" src="#" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Cancellation Policy Section -->
-                                    <div class="form-section">
-                                        <h5 class="section-title">
-                                            <i class="bi bi-file-text me-2"></i>
-                                            Cancellation Policy
-                                        </h5>
-                                        
-                                        <div class="row">
-                                            <div class="col-lg-12">
-                                                <textarea class="form-control" id="cancellationPolicy" name="cancellationPolicy" rows="3" placeholder="Describe your cancellation policy (optional)"></textarea>
-                                                <div class="form-text">
-                                                    Explain your refund and cancellation policy to attendees
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Action Buttons -->
-                                    <div class="form-section">
-                                        <div class="row">
-                                            <div class="col-12 text-end">
-                                                <a href="/dashboard" class="btn btn-light me-2">Cancel</a>
-                                                <button type="submit" class="btn btn-primary">Create Event</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Create New Event</h1>
+    <a href="/events" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Events
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <form action="/events/create" method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label for="title" class="form-label">Event Title</label>
+              <input type="text" class="form-control" id="title" name="title" required>
             </div>
-            <!-- container -->
-            <%- include('../partials/footer') %>
-        </div>
-        <!-- ============================================================== -->
-        <!-- End Page content -->
-        <!-- ============================================================== -->
-    </div>
-    <!-- END wrapper -->
-
-    <!-- Flatpickr date-time picker JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
-    
-    <!-- Dropzone JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
-
-    <script>
-        // Script to show filename and preview image when selected
-        document.getElementById('eventBanner').addEventListener('change', function() {
-            const file = this.files[0];
             
-            if (file) {
-                document.getElementById('file-name').textContent = file.name;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('preview').src = e.target.result;
-                    document.getElementById('imagePreview').style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            } else {
-                document.getElementById('file-name').textContent = 'No file selected';
-                document.getElementById('imagePreview').style.display = 'none';
-            }
-        });
-    </script>
-
-    <%- include('../partials/footer-scripts') %>
-</body>
-</html>
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="categoryId" class="form-label">Category</label>
+                  <select class="form-select" id="categoryId" name="categoryId" required>
+                    <option value="">Select Category</option>
+                    <% categories.forEach(category => { %>
+                      <option value="<%= category.id %>"><%= category.name %></option>
+                    <% }); %>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="status" class="form-label">Status</label>
+                  <select class="form-select" id="status" name="status" required>
+                    <option value="Upcoming" selected>Upcoming</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="startDate" class="form-label">Start Date</label>
+                  <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="endDate" class="form-label">End Date</label>
+                  <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="venue" class="form-label">Venue</label>
+              <input type="text" class="form-control" id="venue" name="venue" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea class="form-control" id="address" name="address" rows="2" required></textarea>
+            </div>
+            
+            <div class="mb-3">
+              <label for="capacity" class="form-label">Capacity</label>
+              <input type="number" class="form-control" id="capacity" name="capacity" min="1" required>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="mb-3">
+              <label for="featuredImage" class="form-label">Featured Image</label>
+              <input type="file" class="form-control" id="featuredImage" name="featuredImage" accept="image/*">
+              <div class="mt-2">
+                <div id="imagePreview" class="border rounded p-2 text-center d-none">
+                  <img id="preview" src="#" alt="Preview" class="img-fluid">
+                </div>
+                <div id="noImageSelected" class="border rounded p-5 text-center text-muted">
+                  <i class="fas fa-image fa-3x mb-3"></i>
+                  <p>No image selected</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isPublished" name="isPublished">
+              <label class="form-check-label" for="isPublished">Publish Event</label>
+              <div class="form-text">Unpublished events won't be visible to users.</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="/events" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Create Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('featuredImage').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          document.getElementById('preview').src = e.target.result;
+          document.getElementById('imagePreview').classList.remove('d-none');
+          document.getElementById('noImageSelected').classList.add('d-none');
+        }
+        
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('imagePreview').classList.add('d-none');
+        document.getElementById('noImageSelected').classList.remove('d-none');
+      }
+    });
+  </script>

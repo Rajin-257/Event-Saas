@@ -1,0 +1,190 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Referral Program</h1>
+    <a href="/users/profile" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Profile
+    </a>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">My Referral Code</h5>
+        </div>
+        <div class="card-body text-center">
+          <div class="card bg-light p-4 mb-3">
+            <h1 class="mb-0"><%= referral.code %></h1>
+            <p class="text-muted mb-0">Share this code with friends</p>
+          </div>
+          
+          <button class="btn btn-outline-primary" onclick="copyToClipboard('<%= referral.code %>')">
+            <i class="fas fa-copy me-1"></i> Copy Code
+          </button>
+          
+          <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#shareModal">
+            <i class="fas fa-share-alt me-1"></i> Share
+          </button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">How It Works</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex mb-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+              <span>1</span>
+            </div>
+            <div>
+              <h6 class="mb-0">Share Your Code</h6>
+              <p class="text-muted mb-0 small">Share your referral code with friends and family</p>
+            </div>
+          </div>
+          
+          <div class="d-flex mb-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+              <span>2</span>
+            </div>
+            <div>
+              <h6 class="mb-0">They Book an Event</h6>
+              <p class="text-muted mb-0 small">Your friends enter your referral code during checkout</p>
+            </div>
+          </div>
+          
+          <div class="d-flex">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+              <span>3</span>
+            </div>
+            <div>
+              <h6 class="mb-0">You Earn Commission</h6>
+              <p class="text-muted mb-0 small">Earn <%= referral.commissionPercentage %>% commission on every booking</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Referral Statistics</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card bg-success text-white text-center p-3">
+                <h2 class="mb-0">$<%= stats.totalCommission %></h2>
+                <p class="mb-0">Total Earnings</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card bg-primary text-white text-center p-3">
+                <h2 class="mb-0"><%= referral.usageCount %></h2>
+                <p class="mb-0">Successful Referrals</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card bg-info text-white text-center p-3">
+                <h2 class="mb-0"><%= referral.commissionPercentage %>%</h2>
+                <p class="mb-0">Commission Rate</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Commission earnings are calculated when referred bookings are completed. Payouts are processed monthly.
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Referral History</h5>
+        </div>
+        <div class="card-body">
+          <% if (referral.usageCount > 0) { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Booking ID</th>
+                    <th>Event</th>
+                    <th>Booking Amount</th>
+                    <th>Commission</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- This section would normally be populated with real referral data -->
+                  <tr>
+                    <td colspan="5" class="text-center py-4">
+                      <i class="fas fa-info-circle text-muted me-2"></i> 
+                      Detailed referral history will appear here. Ask your administrator for more information.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="text-center py-4">
+              <i class="fas fa-users fa-4x text-muted mb-3"></i>
+              <h5>No referrals yet</h5>
+              <p class="text-muted">Share your referral code to start earning!</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Share Modal -->
+  <div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Share Your Referral Code</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Share your referral code with friends to earn commissions:</p>
+          
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" value="<%= referral.code %>" id="referralCodeInput" readonly>
+            <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard('<%= referral.code %>')">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          
+          <p>Or share via:</p>
+          
+          <div class="d-flex justify-content-center gap-3">
+            <a href="mailto:?subject=Join%20me%20at%20Event%20Manager&body=Use%20my%20referral%20code%20<%= referral.code %>%20to%20get%20special%20offers%20on%20event%20bookings!" class="btn btn-outline-primary">
+              <i class="fas fa-envelope me-1"></i> Email
+            </a>
+            
+            <a href="https://wa.me/?text=Use%20my%20referral%20code%20<%= referral.code %>%20to%20get%20special%20offers%20on%20event%20bookings!" target="_blank" class="btn btn-outline-success">
+              <i class="fab fa-whatsapp me-1"></i> WhatsApp
+            </a>
+            
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://eventmanager.com" target="_blank" class="btn btn-outline-info">
+              <i class="fab fa-facebook me-1"></i> Facebook
+            </a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(function() {
+        alert('Referral code copied to clipboard!');
+      }, function(err) {
+        console.error('Could not copy text: ', err);
+      });
+    }
+  </script>

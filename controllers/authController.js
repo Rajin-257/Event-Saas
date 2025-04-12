@@ -1,398 +1,360 @@
-const passport = require('passport');
-const { validationResult } = require('express-validator');
-const { Op } = require('sequelize');
 const User = require('../models/User');
-const emailService = require('../services/emailService');
-const smsService = require('../services/smsService');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const transporter = require('../config/mail');
+const twilioClient = require('../config/twilio');
+const { getEmailTemplate } = require('../helpers/emailTemplates');
+const logger = require('../utils/logger');
+require('dotenv').config();
 
-module.exports = {
-  // Render login page
-  getLogin: (req, res) => {
-    res.render('auth/login', { title: 'Login' });
-  },
+// Generate OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
-  // Handle login
-  postLogin: (req, res, next) => {
-    passport.authenticate('local', {
-      successRedirect: '/dashboard',
-      failureRedirect: '/login',
-      failureFlash: true
-    })(req, res, next);
-  },
+// Generate JWT Token
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+};
 
-  // Render register page
-  getRegister: (req, res) => {
-    res.render('auth/register', { title: 'Register' });
-  },
+// Show login page
+exports.getLogin = (req, res) => {
+  res.render('auth/login', {
+    title: 'Login',
+    messages: req.flash()
+  });
+};
 
-  // Handle registration
-  postRegister: async (req, res) => {
-    try {
-      const { name, email, password, password2, phone, role, referralCode } = req.body;
-      
-      // Validate input
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.render('auth/register', {
-          title: 'Register',
-          errors: errors.array(),
-          name,
-          email,
-          phone
-        });
-      }
-
-      // Check if passwords match
-      if (password !== password2) {
-        req.flash('error_msg', 'Passwords do not match');
-        return res.render('auth/register', {
-          title: 'Register',
-          name,
-          email,
-          phone
-        });
-      }
-
-      // Check if email already exists
-      const existingUser = await User.findOne({ where: { email } });
-      if (existingUser) {
-        req.flash('error_msg', 'Email already registered');
-        return res.render('auth/register', {
-          title: 'Register',
-          name,
-          phone
-        });
-      }
-
-      // Check referral code if provided
-      let referredBy = null;
-      if (referralCode) {
-        const referrer = await User.findOne({ where: { referralCode } });
-        if (referrer) {
-          referredBy = referrer.id;
-        }
-      }
-
-      // Default role to attendee if not specified or not allowed
-      const userRole = role === 'organizer' ? 'organizer' : 'attendee';
-
-      let status = 'active';
-      if(userRole=='organizer'){
-        status= 'inactive';
-      }
-
-      // Create new user
-      const newUser = await User.create({
-        name,
-        email,
-        password,
-        phone: phone || null,
-        role: userRole,
-        status:status,
-        referredBy
-      });
-
-      // Generate email verification token
-      const verificationToken = newUser.generateEmailVerificationToken();
-      await newUser.save();
-
-      // Create verification URL
-      const verificationUrl = `${process.env.BASE_URL}/verify-email/${verificationToken}`;
-      
-      // Send welcome email with verification link
-      try {
-        await emailService.sendEmailWithTemplate(
-          newUser.email,
-          'Welcome to Event Management System',
-          'welcome',
-          { user: newUser, verificationUrl }
-        );
-        console.log('Welcome email sent to:', email);
-      } catch (emailError) {
-        console.error('Error sending welcome email:', emailError);
-        // Continue with registration despite email error
-      }
-      
-      // Send welcome SMS if phone is provided
-      if (phone) {
-        try {
-          await smsService.sendTextMessage(phone, `Welcome to Event Management System, ${name}! Thank you for registering with us. Please verify your email to activate your account.`);
-          console.log('Welcome SMS sent to:', phone);
-        } catch (smsError) {
-          console.error('Error sending welcome SMS:', smsError);
-          // Continue with registration despite SMS error
-        }
-      }
-
-      // Create referral relationship if applicable
-      if (referredBy) {
-        try {
-          const Referral = require('../models/Referral').Referral;
-          await Referral.create({
-            referrerId: referredBy,
-            referredUserId: newUser.id,
-            status: 'pending',
-            commissionRate: 5.00 // Default 5% commission
-          });
-          
-          // Notify referrer
-          const referrer = await User.findByPk(referredBy);
-          if (referrer) {
-            const referralMessage = `${newUser.name} has registered using your referral code. You'll earn commission when they make purchases.`;
-            await emailService.sendEmailWithTemplate(
-              referrer.email,
-              'New Referral Registration',
-              'referral_notification',
-              { referrer, newUser }
-            );
-            
-            if (referrer.phone) {
-              await smsService.sendTextMessage(referrer.phone, referralMessage);
-            }
-          }
-        } catch (referralError) {
-          console.error('Error processing referral:', referralError);
-          // Continue despite referral processing error
-        }
-      }
-
-      req.flash('success_msg', 'Registration successful! Please check your email to verify your account.');
-      res.redirect('/login');
-    } catch (err) {
-      console.error('Registration error:', err);
-      req.flash('error_msg', 'An error occurred during registration');
-      res.redirect('/register');
+// Process login
+exports.postLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Find user by email
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      req.flash('error', 'Invalid email or password');
+      return res.redirect('/auth/login');
     }
-  },
-
-  //resend Verification
-  resendVerification: async (req, res) => {
-    try {
-      const email = req.params.email;
-      
-      if (!email) {
-        req.flash('error_msg', 'Email is required to resend verification');
-        return res.redirect('/users/profile');
-      }
-  
-      // Find the user by email
-      const user = await User.findOne({ where: { email } });
-      
-      if (!user) {
-        req.flash('error_msg', 'User not found');
-        return res.redirect('/users/profile');
-      }
-  
-      // Check if user is already verified
-      if (user.verified) {
-        req.flash('error_msg', 'This email is already verified');
-        return res.redirect('/users/profile');
-      }
-  
-      // Generate new verification token
-      const verificationToken = user.generateEmailVerificationToken();
-      await user.save();
-  
-      // Create verification URL
-      const verificationUrl = `${process.env.BASE_URL}/verify-email/${verificationToken}`;
-      
-      // Send verification email
-      try {
-        await emailService.sendEmailWithTemplate(
-          user.email,
-          'Verify Your Email Address',
-          'email_verification',
-          { user, verificationUrl }
-        );
-        
-        req.flash('success_msg', 'Verification link has been sent to your email address');
-      } catch (emailError) {
-        console.error('Error sending verification email:', emailError);
-        req.flash('error_msg', 'Failed to send verification email. Please try again later.');
-      }
-      
-      res.redirect('/users/profile');
-    } catch (err) {
-      console.error('Resend verification error:', err);
-      req.flash('error_msg', 'An error occurred while resending verification link');
-      res.redirect('/users/profile');
+    
+    // Check if account is active
+    if (!user.isActive) {
+      req.flash('error', 'Your account has been deactivated');
+      return res.redirect('/auth/login');
     }
-  },
-
-  // Verify email
-  verifyEmail: async (req, res) => {
-    try {
-      const { token } = req.params;
-      
-      // Find user by verification token
-      const user = await User.findOne({
-        where: {
-          emailVerificationToken: token,
-          emailVerificationExpires: { [Op.gt]: new Date() }
-        }
-      });
-      
-      if (!user) {
-        req.flash('error_msg', 'Email verification token is invalid or has expired');
-        return res.redirect('/login');
-      }
-      
-      // Update user as verified
-      await user.update({
-        verified: true,
-        emailVerificationToken: null,
-        emailVerificationExpires: null
-      });
-      
-      req.flash('success_msg', 'Your email has been verified! You can now log in.');
-      res.redirect('/login');
-    } catch (err) {
-      console.error('Email verification error:', err);
-      req.flash('error_msg', 'An error occurred during email verification');
-      res.redirect('/login');
+    
+    // Validate password
+    const isValidPassword = await user.validatePassword(password);
+    
+    if (!isValidPassword) {
+      req.flash('error', 'Invalid email or password');
+      return res.redirect('/auth/login');
     }
-  },
-
-  // Handle logout
-  logout: (req, res) => {
-    req.logout(function(err) {
-      if (err) {
-        console.error('Logout error:', err);
-        return next(err);
-      }
-      req.flash('success_msg', 'You are logged out');
-      res.redirect('/login');
+    
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+    
+    // Generate token and set cookie
+    const token = generateToken(user);
+    res.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: process.env.NODE_ENV === 'production'
     });
-  },
+    
+    logger.info(`User logged in: ${user.email}`, { userId: user.id });
+    
+    // Redirect based on role
+    if (user.role === 'SuperAdmin' || user.role === 'Admin') {
+      return res.redirect('/admin/dashboard');
+    } else if (user.role === 'Office Staff' || user.role === 'Ticket Checker') {
+      return res.redirect('/staff/dashboard');
+    } else {
+      return res.redirect('/dashboard');
+    }
+  } catch (error) {
+    logger.error('Login error', { error: error.message });
+    req.flash('error', 'An error occurred during login');
+    res.redirect('/auth/login');
+  }
+};
 
-  // Render dashboard
-  getDashboard: (req, res) => {
-    try {
-      // Redirect to appropriate dashboard based on user role
-      if (req.user.role === 'super_admin') {
-        res.redirect('/dashboard/admin');
-      } else if (req.user.role === 'organizer') {
-        res.redirect('/dashboard/organizer');
-      } else {
-        res.redirect('/dashboard/attendee');
-      }
-    } catch (err) {
-      console.error('Dashboard redirect error:', err);
-      req.flash('error_msg', 'An error occurred');
-      res.redirect('/');
-    }
-  },
-  
-  // Password reset request
-  getPasswordReset: (req, res) => {
-    res.render('auth/recoverpw', { title: 'Reset Password' });
-  },
-  
-  // Handle password reset request
-  postPasswordReset: async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      // Find user by email
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        req.flash('error_msg', 'No account with that email address exists');
-        return res.redirect('/password-reset');
-      }
-      
-      // Generate reset token
-      const resetToken = user.generatePasswordResetToken();
-      await user.save();
-      
-      // Create reset URL
-      const resetUrl = `${process.env.BASE_URL}/password-reset/${resetToken}`;
-      
-      // Send password reset email
-      await emailService.sendEmailWithTemplate(
-        user.email,
-        'Reset Your Password',
-        'password_reset',
-        { user, resetToken, resetUrl }
-      );
-      
-      req.flash('success_msg', 'An email has been sent with instructions to reset your password');
-      res.redirect('/login');
-    } catch (err) {
-      console.error('Password reset request error:', err);
-      req.flash('error_msg', 'An error occurred during password reset request');
-      res.redirect('/password-reset');
-    }
-  },
-  
-  // Show password reset form
-  getPasswordResetForm: async (req, res) => {
-    try {
-      const { token } = req.params;
+// Show register page
+exports.getRegister = (req, res) => {
+  res.render('auth/register', {
+    title: 'Register',
+    messages: req.flash()
+  });
+};
 
-      
-      
-      // Find user by reset token and check if token is valid
-      const user = await User.findOne({
-        where: {
-          resetPasswordToken: token,
-          resetPasswordExpires: { [Op.gt]: new Date() }
-        }
-      });
-      
-      if (!user) {
-        req.flash('error_msg', 'Password reset token is invalid or has expired');
-        return res.redirect('/password-reset');
-      }
-      
-      res.render('auth/createpw', {
-        title: 'Reset Password',
-        token
-      });
-    } catch (err) {
-      console.error('Password reset form error:', err);
-      req.flash('error_msg', 'An error occurred');
-      res.redirect('/password-reset');
+// Process registration
+exports.postRegister = async (req, res) => {
+  try {
+    const { fullName, email, phone, password, confirmPassword } = req.body;
+    
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      req.flash('error', 'Passwords do not match');
+      return res.redirect('/auth/register');
     }
-  },
+    
+    // Check if email already exists
+    const existingUser = await User.findOne({ where: { email } });
+    
+    if (existingUser) {
+      req.flash('error', 'Email already in use');
+      return res.redirect('/auth/register');
+    }
+    
+    // Check if phone already exists
+    const existingPhone = await User.findOne({ where: { phone } });
+    
+    if (existingPhone) {
+      req.flash('error', 'Phone number already in use');
+      return res.redirect('/auth/register');
+    }
+    
+    // Create new user
+    const user = await User.create({
+      fullName,
+      email,
+      phone,
+      password,
+      role: 'User'
+    });
+    
+    logger.info(`New user registered: ${email}`, { userId: user.id });
+    
+    req.flash('success', 'Registration successful! Please login');
+    res.redirect('/auth/login');
+  } catch (error) {
+    logger.error('Registration error', { error: error.message });
+    req.flash('error', 'An error occurred during registration');
+    res.redirect('/auth/register');
+  }
+};
+
+// Logout
+exports.logout = (req, res) => {
+  res.clearCookie('token');
+  req.flash('success', 'Logged out successfully');
+  res.redirect('/auth/login');
+};
+
+// Show forgot password page
+exports.getForgotPassword = (req, res) => {
+  res.render('auth/forgot-password', {
+    title: 'Forgot Password',
+    messages: req.flash()
+  });
+};
+
+// Process forgot password
+exports.postForgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Find user by email
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      req.flash('error', 'Email not found');
+      return res.redirect('/auth/forgot-password');
+    }
+    
+    // Generate OTP
+    const otp = generateOTP();
+    
+    // Store OTP in session
+    req.session.resetPasswordOTP = {
+      email,
+      otp,
+      expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+    };
+    
+    // Send OTP via email
+    const mailOptions = getEmailTemplate('otp_verification', { otp });
+    
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to: email,
+      subject: mailOptions.subject,
+      html: mailOptions.html
+    });
+    
+    logger.info(`Password reset OTP sent to: ${email}`);
+    
+    req.flash('success', 'OTP sent to your email');
+    res.redirect(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+  } catch (error) {
+    logger.error('Forgot password error', { error: error.message });
+    req.flash('error', 'An error occurred');
+    res.redirect('/auth/forgot-password');
+  }
+};
+
+// Show reset password page
+exports.getResetPassword = (req, res) => {
+  const { email } = req.query;
   
-  // Handle password reset
-  postPasswordResetForm: async (req, res) => {
-    try {
-      const { token } = req.params;
-      const { password, password2 } = req.body;
-      
-      // Validate passwords
-      if (password !== password2) {
-        req.flash('error_msg', 'Passwords do not match');
-        return res.redirect(`/password-reset/${token}`);
-      }
-      
-      // Find user by reset token and check if token is valid
-      const user = await User.findOne({
-        where: {
-          resetPasswordToken: token,
-          resetPasswordExpires: { [Op.gt]: new Date() }
-        }
-      });
-      
-      if (!user) {
-        req.flash('error_msg', 'Password reset token is invalid or has expired');
-        return res.redirect('/password-reset');
-      }
-      
-      // Update password and clear reset token
-      await user.update({
-        password: password, // This will be hashed by User model hook
-        resetPasswordToken: null,
-        resetPasswordExpires: null
-      });
-      
-      req.flash('success_msg', 'Your password has been updated successfully. You can now log in with your new password');
-      res.redirect('/login');
-    } catch (err) {
-      console.error('Password reset error:', err);
-      req.flash('error_msg', 'An error occurred during password reset');
-      res.redirect('/password-reset');
+  if (!email) {
+    req.flash('error', 'Email is required');
+    return res.redirect('/auth/forgot-password');
+  }
+  
+  res.render('auth/reset-password', {
+    title: 'Reset Password',
+    email,
+    messages: req.flash()
+  });
+};
+
+// Process reset password
+exports.postResetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword, confirmPassword } = req.body;
+    
+    // Check if OTP exists and is valid
+    if (!req.session.resetPasswordOTP || 
+        req.session.resetPasswordOTP.email !== email || 
+        req.session.resetPasswordOTP.otp !== otp || 
+        req.session.resetPasswordOTP.expires < Date.now()) {
+      req.flash('error', 'Invalid or expired OTP');
+      return res.redirect(`/auth/reset-password?email=${encodeURIComponent(email)}`);
     }
+    
+    // Check if passwords match
+    if (newPassword !== confirmPassword) {
+      req.flash('error', 'Passwords do not match');
+      return res.redirect(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+    }
+    
+    // Find user and update password
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      req.flash('error', 'User not found');
+      return res.redirect('/auth/login');
+    }
+    
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update user password
+    user.password = hashedPassword;
+    await user.save();
+    
+    // Clear OTP from session
+    delete req.session.resetPasswordOTP;
+    
+    logger.info(`Password reset successful for: ${email}`);
+    
+    req.flash('success', 'Password reset successful. Please login with your new password');
+    res.redirect('/auth/login');
+  } catch (error) {
+    logger.error('Reset password error', { error: error.message });
+    req.flash('error', 'An error occurred');
+    res.redirect('/auth/forgot-password');
+  }
+};
+
+// Send OTP for verification
+exports.sendOTP = async (req, res) => {
+  try {
+    const { method, destination } = req.body;
+    
+    // Generate OTP
+    const otp = generateOTP();
+    
+    // Store OTP in session
+    req.session.verificationOTP = {
+      destination,
+      otp,
+      expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+    };
+    
+    if (method === 'email') {
+      // Send OTP via email
+      const mailOptions = getEmailTemplate('otp_verification', { otp });
+      
+      await transporter.sendMail({
+        from: process.env.MAIL_FROM,
+        to: destination,
+        subject: mailOptions.subject,
+        html: mailOptions.html
+      });
+      
+      logger.info(`Email OTP sent to: ${destination}`);
+    } else if (method === 'whatsapp') {
+      // Send OTP via WhatsApp (using Twilio)
+      await twilioClient.messages.create({
+        body: `Your verification code is: ${otp}`,
+        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+        to: `whatsapp:${destination}`
+      });
+      
+      logger.info(`WhatsApp OTP sent to: ${destination}`);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid method'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: `OTP sent successfully to ${destination}`
+    });
+  } catch (error) {
+    logger.error('OTP send error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP'
+    });
+  }
+};
+
+// Verify OTP
+exports.verifyOTP = (req, res) => {
+  try {
+    const { destination, otp } = req.body;
+    
+    // Check if OTP exists and is valid
+    if (!req.session.verificationOTP || 
+        req.session.verificationOTP.destination !== destination || 
+        req.session.verificationOTP.otp !== otp || 
+        req.session.verificationOTP.expires < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP'
+      });
+    }
+    
+    // Mark as verified in session
+    req.session.isVerified = true;
+    
+    // Clear OTP from session
+    delete req.session.verificationOTP;
+    
+    logger.info(`OTP verification successful for: ${destination}`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Verification successful'
+    });
+  } catch (error) {
+    logger.error('OTP verification error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during verification'
+    });
   }
 };

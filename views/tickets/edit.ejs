@@ -1,0 +1,105 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Ticket - <%= ticket.type %></h1>
+    <a href="/tickets/event/<%= ticket.eventId %>" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Tickets
+    </a>
+  </div>
+  
+  <div class="card">
+    <div class="card-body">
+      <form action="/tickets/<%= ticket.id %>/update" method="POST">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="type" class="form-label">Ticket Type</label>
+              <input type="text" class="form-control" id="type" name="type" value="<%= ticket.type %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="price" class="form-label">Price</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" value="<%= ticket.price %>" required>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="quantity" class="form-label">Total Quantity</label>
+              <input type="number" class="form-control" id="quantity" name="quantity" min="<%= ticket.quantitySold %>" value="<%= ticket.quantity %>" required>
+              <div class="form-text">
+                <% if (ticket.quantitySold > 0) { %>
+                  <span class="text-danger">
+                    <%= ticket.quantitySold %> tickets already sold. New quantity must be greater than or equal to sold tickets.
+                  </span>
+                <% } else { %>
+                  Maximum number of tickets available for sale
+                <% } %>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="3"><%= ticket.description %></textarea>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="saleStartDate" class="form-label">Sale Start Date</label>
+              <input type="datetime-local" class="form-control" id="saleStartDate" name="saleStartDate" value="<%= new Date(ticket.saleStartDate).toISOString().slice(0, 16) %>" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="saleEndDate" class="form-label">Sale End Date</label>
+              <input type="datetime-local" class="form-control" id="saleEndDate" name="saleEndDate" value="<%= new Date(ticket.saleEndDate).toISOString().slice(0, 16) %>" required>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="isActive" name="isActive" <%= ticket.isActive ? 'checked' : '' %>>
+              <label class="form-check-label" for="isActive">Ticket is Active</label>
+              <div class="form-text">Inactive tickets won't be available for purchase</div>
+            </div>
+            
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Event Details</h6>
+              </div>
+              <div class="card-body">
+                <p><strong>Event:</strong> <%= ticket.event.title %></p>
+                <p><strong>Dates:</strong> <%= dateFormatter.formatDate(ticket.event.startDate) %> to <%= dateFormatter.formatDate(ticket.event.endDate) %></p>
+                <p><strong>Venue:</strong> <%= ticket.event.venue %></p>
+              </div>
+            </div>
+            
+            <div class="card bg-light">
+              <div class="card-body">
+                <h6 class="card-title">Sales Statistics</h6>
+                <p class="mb-1">Sold: <%= ticket.quantitySold %> / <%= ticket.quantity %></p>
+                <div class="progress mb-3" style="height: 10px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: <%= (ticket.quantitySold / ticket.quantity) * 100 %>%"></div>
+                </div>
+                <p class="mb-0">Available: <%= ticket.quantity - ticket.quantitySold %></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+          <a href="/tickets/event/<%= ticket.eventId %>" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Update Ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const quantitySold = `<%= ticket.quantitySold %>`;
+      const quantity = parseInt(document.getElementById('quantity').value);
+      
+      if (quantity < quantitySold) {
+        alert('Total quantity cannot be less than the number of tickets already sold.');
+        e.preventDefault();
+      }
+    });
+  </script>

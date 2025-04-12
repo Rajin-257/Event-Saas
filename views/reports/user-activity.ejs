@@ -1,0 +1,279 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>User Activity Report</h1>
+    <a href="/dashboard" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+  
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Filter by Date Range</h5>
+    </div>
+    <div class="card-body">
+      <form action="/reports/user-activity" method="GET">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label for="startDate" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="startDate" name="startDate" value="<%= filters.startDate %>">
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label for="endDate" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="endDate" name="endDate" value="<%= filters.endDate %>">
+          </div>
+          
+          <div class="col-md-4 mb-3 d-flex align-items-end">
+            <div class="d-grid w-100">
+              <button type="submit" class="btn btn-primary">Apply Filter</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">New Users</h6>
+              <h2 class="mb-0"><%= summary.newUsersCount %></h2>
+            </div>
+            <i class="fas fa-user-plus fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-primary border-top-0">
+          <span class="text-white">New registrations</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Active Users</h6>
+              <h2 class="mb-0"><%= summary.activeUsersCount %></h2>
+            </div>
+            <i class="fas fa-users fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-success border-top-0">
+          <span class="text-white">Made bookings in this period</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title">Logins</h6>
+              <h2 class="mb-0"><%= summary.loginsCount %></h2>
+            </div>
+            <i class="fas fa-sign-in-alt fa-3x opacity-50"></i>
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between bg-info border-top-0">
+          <span class="text-white">Login activity</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">User Registration Trend</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="registrationChart" height="300"></canvas>
+        </div>
+      </div>
+      
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Most Active Users</h5>
+        </div>
+        <div class="card-body">
+          <% if (activeUsers && activeUsers.length > 0) { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Registration Date</th>
+                    <th>Bookings</th>
+                    <th>Total Spent</th>
+                    <th>Last Activity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% activeUsers.forEach(user => { %>
+                    <tr>
+                      <td><%= user.user.fullName %></td>
+                      <td><%= user.user.email %></td>
+                      <td><%= dateFormatter.formatDate(user.user.createdAt) %></td>
+                      <td><%= user.dataValues.bookingCount %></td>
+                      <td>$<%= parseFloat(user.dataValues.totalSpent) %></td>
+                      <td><%= dateFormatter.formatDate(user.dataValues.lastActivity) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="alert alert-info">
+              No active users found for the selected period.
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">New Users</h5>
+        </div>
+        <div class="card-body">
+          <% if (newUsers && newUsers.length > 0) { %>
+            <div class="list-group">
+              <% newUsers.slice(0, 10).forEach(user => { %>
+                <div class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1"><%= user.fullName %></h6>
+                    <small><%= dateFormatter.formatDate(user.createdAt) %></small>
+                  </div>
+                  <p class="mb-1">
+                    <small>
+                      Email: <%= user.email %><br>
+                      Phone: <%= user.phone %>
+                    </small>
+                  </p>
+                </div>
+              <% }); %>
+            </div>
+            <% if (newUsers.length > 10) { %>
+              <div class="text-center mt-3">
+                <p class="text-muted small">Showing 10 of <%= newUsers.length %> new users</p>
+              </div>
+            <% } %>
+          <% } else { %>
+            <div class="alert alert-info">
+              No new users found for the selected period.
+            </div>
+          <% } %>
+        </div>
+      </div>
+      
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Recent Logins</h5>
+        </div>
+        <div class="card-body">
+          <% if (recentLogins && recentLogins.length > 0) { %>
+            <div class="list-group">
+              <% recentLogins.slice(0, 10).forEach(user => { %>
+                <div class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1"><%= user.fullName %></h6>
+                    <small><%= dateFormatter.formatDateTime(user.lastLogin) %></small>
+                  </div>
+                  <p class="mb-1">
+                    <small><%= user.email %></small>
+                  </p>
+                </div>
+              <% }); %>
+            </div>
+            <% if (recentLogins.length > 10) { %>
+              <div class="text-center mt-3">
+                <p class="text-muted small">Showing 10 of <%= recentLogins.length %> recent logins</p>
+              </div>
+            <% } %>
+          <% } else { %>
+            <div class="alert alert-info">
+              No login activity found for the selected period.
+            </div>
+          <% } %>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Report Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-primary" onclick="printReport()">
+              <i class="fas fa-print me-1"></i> Print Report
+            </button>
+            
+            <button class="btn btn-outline-success" onclick="exportToExcel()">
+              <i class="fas fa-file-excel me-1"></i> Export to Excel
+            </button>
+            
+            <a href="/users" class="btn btn-outline-info">
+              <i class="fas fa-users me-1"></i> Manage Users
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    // Registration Trend Chart
+    const registrationData = <%= dailyRegistrations %>;
+    
+    // Prepare data for chart
+    const dates = registrationData.map(item => item.date);
+    const counts = registrationData.map(item => item.count);
+    
+    // Create the chart
+    const ctx = document.getElementById('registrationChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'New Registrations',
+          data: counts,
+          backgroundColor: 'rgba(0, 123, 255, 0.3)',
+          borderColor: 'rgba(0, 123, 255, 1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
+    });
+    
+    // Print report
+    function printReport() {
+      window.print();
+    }
+    
+    // Export to Excel (placeholder function)
+    function exportToExcel() {
+      alert('This would export the report to Excel in a real implementation.');
+    }
+  </script>

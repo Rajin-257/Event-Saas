@@ -1,0 +1,340 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Ticket Checker Dashboard</h1>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-5">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Scan QR Code</h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            <div id="reader" style="width: 100%"></div>
+          </div>
+          
+          <div class="text-center">
+            <button id="startButton" class="btn btn-success">
+              <i class="fas fa-camera me-1"></i> Start Scanner
+            </button>
+            <button id="stopButton" class="btn btn-danger d-none">
+              <i class="fas fa-stop-circle me-1"></i> Stop Scanner
+            </button>
+          </div>
+          
+          <hr>
+          
+          <form id="manualForm" class="mt-3">
+            <div class="mb-3">
+              <label for="manualCode" class="form-label">Or Enter Booking Code Manually:</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="manualCode" placeholder="Enter booking code">
+                <button class="btn btn-primary" type="submit">Verify</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">Ongoing Events</h5>
+        </div>
+        <div class="card-body">
+          <% if (events && events.length > 0) { %>
+            <ul class="list-group list-group-flush">
+              <% events.forEach(event => { %>
+                <li class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1"><%= event.title %></h6>
+                    <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : 'primary' %>"><%= event.status %></span>
+                  </div>
+                  <p class="mb-1">
+                    <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDate(event.startDate) %> - <%= dateFormatter.formatDate(event.endDate) %>
+                  </p>
+                  <small><i class="fas fa-map-marker-alt"></i> <%= event.venue %></small>
+                </li>
+              <% }); %>
+            </ul>
+          <% } else { %>
+            <div class="alert alert-info">
+              No ongoing events at the moment.
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-7">
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">Verification Result</h5>
+        </div>
+        <div class="card-body">
+          <div id="result-area" class="d-none">
+            <div id="success-result" class="d-none">
+              <div class="alert alert-success">
+                <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i> Ticket Valid!</h4>
+                <p class="mb-0">Ticket has been successfully verified and checked in.</p>
+              </div>
+              
+              <div class="card border-success mb-3">
+                <div class="card-header bg-success text-white">Booking Details</div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p><strong>Booking ID:</strong> <span id="booking-id"></span></p>
+                      <p><strong>Event:</strong> <span id="event-title"></span></p>
+                      <p><strong>Ticket Type:</strong> <span id="ticket-type"></span></p>
+                      <p><strong>Quantity:</strong> <span id="ticket-quantity"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                      <p><strong>Name:</strong> <span id="user-name"></span></p>
+                      <p><strong>Phone:</strong> <span id="user-phone"></span></p>
+                      <p><strong>Check-in Time:</strong> <span id="checkin-time"></span></p>
+                    </div>
+                    <div class="text-center mt-3">
+                      <button class="btn btn-primary" id="verify-another">
+                        <i class="fas fa-qrcode me-1"></i> Verify Another Ticket
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div id="error-result" class="d-none">
+                <div class="alert alert-danger">
+                  <h4 class="alert-heading"><i class="fas fa-times-circle me-2"></i> <span id="error-title">Verification Failed</span></h4>
+                  <p id="error-message" class="mb-0">Unable to verify ticket. Please try again.</p>
+                </div>
+                
+                <div id="error-details" class="card border-danger mb-3 d-none">
+                  <div class="card-header bg-danger text-white">Ticket Details</div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <p><strong>Booking ID:</strong> <span id="error-booking-id"></span></p>
+                        <p><strong>Event:</strong> <span id="error-event-title"></span></p>
+                        <p><strong>Username:</strong> <span id="error-username"></span></p>
+                      </div>
+                      <div class="col-md-6">
+                        <p><strong>Checked In:</strong> <span id="error-checked-in"></span></p>
+                        <p><strong>Check-in Time:</strong> <span id="error-checkin-time"></span></p>
+                      </div>
+                    </div>
+                    <div class="text-center mt-3">
+                      <button class="btn btn-primary" id="error-verify-another">
+                        <i class="fas fa-qrcode me-1"></i> Try Another Ticket
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div id="initial-message">
+              <div class="text-center py-5">
+                <i class="fas fa-qrcode fa-5x text-muted mb-3"></i>
+                <h4 class="text-muted">Scan a ticket QR code to verify</h4>
+                <p class="text-muted">Verification results will appear here</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Recent Check-ins</h5>
+          </div>
+          <div class="card-body">
+            <% if (recentCheckIns && recentCheckIns.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>User</th>
+                      <th>Event</th>
+                      <th>Check-in Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% recentCheckIns.forEach(booking => { %>
+                      <tr>
+                        <td>#<%= booking.id %></td>
+                        <td><%= booking.user.fullName %></td>
+                        <td><%= booking.event.title %></td>
+                        <td><%= dateFormatter.formatDateTime(booking.checkedInAt) %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <div class="alert alert-info">No recent check-ins found.</div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- HTML5 QR Code Scanner Script -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.2.1/dist/html5-qrcode.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        let html5QrCode;
+        const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+          const minEdgePercentage = 0.7; // 70%
+          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
+        };
+        
+        // Start scanner button
+        document.getElementById('startButton').addEventListener('click', function() {
+          html5QrCode = new Html5Qrcode("reader");
+          document.getElementById('startButton').classList.add('d-none');
+          document.getElementById('stopButton').classList.remove('d-none');
+          
+          html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: qrboxFunction,
+              aspectRatio: 1.0
+            },
+            onScanSuccess,
+            onScanFailure
+          );
+        });
+        
+        // Stop scanner button
+        document.getElementById('stopButton').addEventListener('click', function() {
+          if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+              document.getElementById('startButton').classList.remove('d-none');
+              document.getElementById('stopButton').classList.add('d-none');
+            });
+          }
+        });
+        
+        // On QR code scan success
+        function onScanSuccess(decodedText, decodedResult) {
+          // Stop scanning
+          if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+              document.getElementById('startButton').classList.remove('d-none');
+              document.getElementById('stopButton').classList.add('d-none');
+              
+              // Process the QR code
+              processQRCode(decodedText);
+            });
+          }
+        }
+        
+        // On QR code scan failure
+        function onScanFailure(error) {
+          // Handle scan failure silently
+          console.log(`QR Code scanning failed: ${error}`);
+        }
+        
+        // Manual form submission
+        document.getElementById('manualForm').addEventListener('submit', function(e) {
+          e.preventDefault();
+          const manualCode = document.getElementById('manualCode').value.trim();
+          if (manualCode) {
+            processQRCode(manualCode);
+            document.getElementById('manualCode').value = '';
+          }
+        });
+        
+        // Process QR code data
+        function processQRCode(qrData) {
+          try {
+            // Show result area and hide initial message
+            document.getElementById('initial-message').classList.add('d-none');
+            document.getElementById('result-area').classList.remove('d-none');
+            
+            // Hide both result divs initially
+            document.getElementById('success-result').classList.add('d-none');
+            document.getElementById('error-result').classList.add('d-none');
+            
+            // Send to server for verification
+            fetch('/tickets/verify', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ code: qrData })
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                showSuccessResult(data);
+              } else {
+                showErrorResult(data);
+              }
+            })
+            .catch(error => {
+              showErrorResult({
+                success: false,
+                message: 'Network error. Please try again.'
+              });
+            });
+          } catch (error) {
+            showErrorResult({
+              success: false,
+              message: 'Invalid QR code format'
+            });
+          }
+        }
+        
+        // Show success result
+        function showSuccessResult(data) {
+          document.getElementById('success-result').classList.remove('d-none');
+          document.getElementById('error-result').classList.add('d-none');
+          
+          // Populate booking details
+          document.getElementById('booking-id').textContent = data.booking.id;
+          document.getElementById('event-title').textContent = data.booking.eventTitle;
+          document.getElementById('ticket-type').textContent = data.booking.ticketType;
+          document.getElementById('ticket-quantity').textContent = data.booking.quantity;
+          document.getElementById('user-name').textContent = data.booking.username;
+          document.getElementById('user-phone').textContent = data.booking.phone || 'N/A';
+          document.getElementById('checkin-time').textContent = new Date().toLocaleString();
+        }
+        
+        // Show error result
+        function showErrorResult(data) {
+          document.getElementById('success-result').classList.add('d-none');
+          document.getElementById('error-result').classList.remove('d-none');
+          
+          document.getElementById('error-message').textContent = data.message;
+          
+          // If booking data is provided (e.g., already checked in)
+          if (data.booking) {
+            document.getElementById('error-details').classList.remove('d-none');
+            document.getElementById('error-booking-id').textContent = data.booking.id;
+            document.getElementById('error-event-title').textContent = data.booking.eventTitle;
+            document.getElementById('error-username').textContent = data.booking.username;
+            document.getElementById('error-checked-in').textContent = 'Yes';
+            document.getElementById('error-checkin-time').textContent = data.booking.checkedInAt;
+          } else {
+            document.getElementById('error-details').classList.add('d-none');
+          }
+        }
+        
+        // Verify another ticket buttons
+        document.getElementById('verify-another').addEventListener('click', resetScanner);
+        document.getElementById('error-verify-another').addEventListener('click', resetScanner);
+        
+        // Reset scanner
+        function resetScanner() {
+          document.getElementById('initial-message').classList.remove('d-none');
+          document.getElementById('result-area').classList.add('d-none');
+        }
+      });
+    </script>

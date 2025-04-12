@@ -1,12 +1,11 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-const User = require('./User');
+const sequelize = require('../config/database');
 
 const Event = sequelize.define('Event', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   title: {
     type: DataTypes.STRING,
@@ -14,10 +13,10 @@ const Event = sequelize.define('Event', {
   },
   description: {
     type: DataTypes.TEXT,
-    allowNull: false
+    allowNull: true
   },
-  category: {
-    type: DataTypes.ENUM('concert', 'seminar', 'workshop', 'conference', 'exhibition', 'other'),
+  categoryId: {
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   startDate: {
@@ -32,48 +31,30 @@ const Event = sequelize.define('Event', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  venueAddress: {
+  address: {
     type: DataTypes.TEXT,
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('draft', 'upcoming', 'ongoing', 'completed', 'cancelled'),
-    defaultValue: 'draft'
+    type: DataTypes.ENUM('Upcoming', 'Ongoing', 'Completed'),
+    defaultValue: 'Upcoming'
   },
-  bannerImage: {
+  featuredImage: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  organizerId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: User,
-      key: 'id'
-    }
-  },
-  maxAttendees: {
+  capacity: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 100
+    allowNull: false
   },
   isPublished: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
-  cancellationPolicy: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  organizerCommissionRate: {
-    type: DataTypes.DECIMAL(5, 2),
-    defaultValue: 10.00 // Default 10% commission
+  createdBy: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 });
-
-// Event Associations
-Event.belongsTo(User, { as: 'organizer', foreignKey: 'organizerId',onDelete:'CASCADE' });
-
-
 
 module.exports = Event;

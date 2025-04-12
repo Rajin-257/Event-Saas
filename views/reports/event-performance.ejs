@@ -1,0 +1,397 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Event Performance Report</h1>
+    <a href="/dashboard" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+  
+  <% if (!event) { %>
+    <!-- Event Selection View -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Select Event</h5>
+      </div>
+      <div class="card-body">
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+          <% if (events && events.length > 0) { %>
+            <% events.forEach(event => { %>
+              <div class="col">
+                <div class="card h-100">
+                  <% if (event.featuredImage) { %>
+                    <img src="<%= event.featuredImage %>" class="card-img-top" alt="<%= event.title %>" style="height: 150px; object-fit: cover;">
+                  <% } else { %>
+                    <div class="card-img-top bg-light text-center py-5">
+                      <i class="fas fa-calendar-alt fa-4x text-muted"></i>
+                    </div>
+                  <% } %>
+                  <div class="card-body">
+                    <h5 class="card-title"><%= event.title %></h5>
+                    <p class="card-text">
+                      <span class="badge bg-<%= event.status === 'Ongoing' ? 'success' : (event.status === 'Upcoming' ? 'primary' : 'secondary') %>">
+                        <%= event.status %>
+                      </span>
+                      <small class="text-muted d-block mt-2">
+                        <i class="fas fa-calendar-alt"></i> <%= dateFormatter.formatDate(event.startDate) %>
+                      </small>
+                    </p>
+                    <a href="/reports/event-performance/<%= event.id %>" class="btn btn-primary">View Report</a>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <div class="col-12">
+              <div class="alert alert-info">
+                No events found. Please create events first.
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <!-- Event Performance Report View -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><%= event.title %></h5>
+          <span class="badge bg-light text-dark">
+            <%= event.status %>
+          </span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <p>
+              <strong>Category:</strong> <%= event.category ? event.category.name : 'N/A' %><br>
+              <strong>Dates:</strong> <%= dateFormatter.formatDate(event.startDate) %> - <%= dateFormatter.formatDate(event.endDate) %><br>
+              <strong>Venue:</strong> <%= event.venue %>
+            </p>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <p>
+              <strong>Capacity:</strong> <%= event.capacity %><br>
+              <strong>Total Revenue:</strong> $<%= summary.totalRevenue %><br>
+              <strong>Total Bookings:</strong> <%= summary.totalConfirmedBookings %>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="card-title">Tickets Sold</h6>
+                <h2 class="mb-0"><%= summary.totalTicketsSold %></h2>
+              </div>
+              <i class="fas fa-ticket-alt fa-3x opacity-50"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between bg-primary border-top-0">
+            <span class="text-white">Out of <%= summary.totalCapacity %> total capacity</span>
+            <span class="badge bg-light text-dark"><%= Math.round(summary.soldPercentage) %>%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="card-title">Total Revenue</h6>
+                <h2 class="mb-0">$<%= summary.totalRevenue %></h2>
+              </div>
+              <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between bg-success border-top-0">
+            <span class="text-white">From confirmed bookings</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="card-title">Bookings</h6>
+                <h2 class="mb-0"><%= summary.totalConfirmedBookings %></h2>
+              </div>
+              <i class="fas fa-shopping-cart fa-3x opacity-50"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between bg-info border-top-0">
+            <span class="text-white">Confirmed bookings</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <div class="card bg-warning text-white h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="card-title">Completion</h6>
+                <h2 class="mb-0"><%= Math.round(summary.soldPercentage) %>%</h2>
+              </div>
+              <i class="fas fa-chart-pie fa-3x opacity-50"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between bg-warning border-top-0">
+            <span class="text-white">Of total capacity</span>
+            <div class="progress bg-light" style="width: 100px; height: 10px;">
+              <div class="progress-bar bg-success" role="progressbar" style="width: <%= summary.soldPercentage %>%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-lg-8">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Daily Sales Chart</h5>
+          </div>
+          <div class="card-body">
+            <canvas id="salesChart" height="300"></canvas>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Ticket Sales Breakdown</h5>
+          </div>
+          <div class="card-body">
+            <% if (ticketSales && ticketSales.length > 0) { %>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Ticket Type</th>
+                      <th>Price</th>
+                      <th>Sold</th>
+                      <th>Total</th>
+                      <th>Sold %</th>
+                      <th>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% ticketSales.forEach(ticket => { %>
+                      <tr>
+                        <td><%= ticket.ticket.type %></td>
+                        <td>$<%= ticket.ticket.price %></td>
+                        <td><%= ticket.quantity %></td>
+                        <td><%= ticket.ticket.quantity %></td>
+                        <td>
+                          <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: <%= ticket.percentageSold %>%;" aria-valuenow="<%= ticket.percentageSold %>" aria-valuemin="0" aria-valuemax="100">
+                              <%= Math.round(ticket.percentageSold) %>%
+                            </div>
+                          </div>
+                        </td>
+                        <td>$<%= parseFloat(ticket.revenue) %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                  <tfoot class="table-light">
+                    <tr>
+                      <th colspan="2">Total</th>
+                      <td><%= summary.totalTicketsSold %></td>
+                      <td><%= summary.totalCapacity %></td>
+                      <td>
+                        <div class="progress" style="height: 20px;">
+                          <div class="progress-bar bg-success" role="progressbar" style="width: <%= summary.soldPercentage %>%;" aria-valuenow="<%= summary.soldPercentage %>" aria-valuemin="0" aria-valuemax="100">
+                            <%= Math.round(summary.soldPercentage) %>%
+                          </div>
+                        </div>
+                      </td>
+                      <td>$<%= summary.totalRevenue %></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            <% } else { %>
+              <div class="alert alert-info">
+                No ticket sales data found for this event.
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Ticket Sales Distribution</h5>
+          </div>
+          <div class="card-body">
+            <canvas id="ticketPieChart" height="250"></canvas>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Report Actions</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary" onclick="printReport()">
+                <i class="fas fa-print me-1"></i> Print Report
+              </button>
+              
+              <button class="btn btn-outline-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i> Export to Excel
+              </button>
+              
+              <button class="btn btn-outline-danger" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf me-1"></i> Export to PDF
+              </button>
+              
+              <a href="/bookings/admin/all?eventId=<%= event.id %>" class="btn btn-outline-info">
+                <i class="fas fa-list me-1"></i> View All Bookings
+              </a>
+              
+              <a href="/events/<%= event.id %>" class="btn btn-outline-secondary">
+                <i class="fas fa-calendar-alt me-1"></i> View Event Details
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    <% if (event) { %>
+      // Daily Sales Chart
+      const dailySales = <%= dailySales %>;
+      
+      // Prepare data for chart
+      const dates = dailySales.map(item => item.date);
+      const revenues = dailySales.map(item => item.revenue);
+      const tickets = dailySales.map(item => item.tickets);
+      
+      // Create the sales chart
+      const salesCtx = document.getElementById('salesChart').getContext('2d');
+      new Chart(salesCtx, {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [
+            {
+              label: 'Revenue ($)',
+              data: revenues,
+              backgroundColor: 'rgba(40, 167, 69, 0.5)',
+              borderColor: 'rgb(40, 167, 69)',
+              borderWidth: 1,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Tickets Sold',
+              data: tickets,
+              type: 'line',
+              backgroundColor: 'rgba(0, 123, 255, 0.5)',
+              borderColor: 'rgb(0, 123, 255)',
+              borderWidth: 2,
+              pointBackgroundColor: 'rgb(0, 123, 255)',
+              pointRadius: 3,
+              fill: false,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              position: 'left',
+              title: {
+                display: true,
+                text: 'Revenue ($)'
+              }
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              grid: {
+                drawOnChartArea: false,
+              },
+              title: {
+                display: true,
+                text: 'Tickets Sold'
+              }
+            }
+          }
+        }
+      });
+      
+      // Ticket Sales Pie Chart
+      const pieData = <% if (ticketSales && ticketSales.length > 0) { %>
+        {
+          labels: [<%= ticketSales.map(t => `'${t.ticket.type}'`).join(',') %>],
+          datasets: [{
+            data: [<%= ticketSales.map(t => t.quantity).join(',') %>],
+            backgroundColor: [
+              'rgba(255, 99, 132, 0.7)',
+              'rgba(54, 162, 235, 0.7)',
+              'rgba(255, 206, 86, 0.7)',
+              'rgba(75, 192, 192, 0.7)',
+              'rgba(153, 102, 255, 0.7)',
+              'rgba(255, 159, 64, 0.7)'
+            ],
+            borderWidth: 1
+          }]
+        }
+      <% } else { %>
+        {
+          labels: ['No Data'],
+          datasets: [{
+            data: [1],
+            backgroundColor: ['rgba(200, 200, 200, 0.7)'],
+            borderWidth: 1
+          }]
+        }
+      <% } %>;
+      
+      const pieCtx = document.getElementById('ticketPieChart').getContext('2d');
+      new Chart(pieCtx, {
+        type: 'pie',
+        data: pieData,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    <% } %>
+    
+    // Print report
+    function printReport() {
+      window.print();
+    }
+    
+    // Export to Excel (placeholder function)
+    function exportToExcel() {
+      alert('This would export the report to Excel in a real implementation.');
+    }
+    
+    // Export to PDF (placeholder function)
+    function exportToPDF() {
+      alert('This would export the report to PDF in a real implementation.');
+    }
+  </script>

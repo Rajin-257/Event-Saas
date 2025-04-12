@@ -1,113 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="utf-8" />
-    <title><%= title %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
-    <meta content="Coderthemes" name="author" />
-
-    <!-- App favicon -->
-    <link rel="shortcut icon" href="/assets/images/favicon.ico">
-
-    <!-- Theme Config Js -->
-    <script src="/assets/js/config.js"></script>
-
-    <!-- Vendor css -->
-    <link href="/assets/css/vendor.min.css" rel="stylesheet" type="text/css" />
-
-    <!-- App css -->
-    <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-style" />
-
-    <!-- Icons css -->
-    <link href="/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
-</head>
-
-<body class="h-100">
-
-    <div class="auth-bg d-flex min-vh-100 justify-content-center align-items-center">
-        <div class="row g-0 justify-content-center w-100 m-xxl-5 px-xxl-4 m-3">
-            <div class="col-xl-4 col-lg-5 col-md-6">
-                <div class="card overflow-hidden text-center h-100 p-xxl-4 p-3 mb-0">
-                    <a href="/" class="auth-brand mb-3">
-                        <img src="/assets/images/logo-dark.png" alt="dark logo" height="24" class="logo-dark">
-                        <img src="/assets/images/logo.png" alt="logo light" height="24" class="logo-light">
-                    </a>
-
-                    <h4 class="fw-semibold mb-2">Welcome to Boron Admin</h4>
-
-                    <%- include('../partials/messages') %>
-
-                    <form action="/register" method="POST" class="text-start mb-3">
-                        <div class="mb-3">
-                          <label for="name" class="form-label">Full Name</label>
-                          <input type="text" class="form-control" id="name" name="name" placeholder="Enter Your Full Name" required>
-                        </div>
-
-                        <div class="mb-3">
-                          <label for="email" class="form-label">Email address</label>
-                          <input type="email" class="form-control" id="email" name="email" placeholder="Enter Your Email" required>
-                          <div class="form-text">We'll never share your email with anyone else.</div>
-                        </div>
-
-                        <div class="mb-3">
-                          <label for="phone" class="form-label">Phone Number (optional)</label>
-                          <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter Your Number">
-                        </div>
-
-                        <div class="mb-3">
-                          <label for="password" class="form-label">Password</label>
-                          <input type="password" class="form-control" id="password" name="password" placeholder="Enter Your Password" required>
-                          <div class="form-text">Password must be at least 6 characters long.</div>
-                        </div>
-
-                        <div class="mb-3">
-                          <label for="password2" class="form-label">Confirm Password</label>
-                          <input type="password" class="form-control" id="password2" name="password2" placeholder="Enter Your Password" required>
-                        </div>
-
-                        <div class="mb-3">
-                          <label for="role" class="form-label">Register as</label>
-                          <select class="form-select" id="role" name="role">
-                            <option value="attendee" <%= typeof role != 'undefined' && role === 'attendee' ? 'selected' : '' %>>Attendee (Regular User)</option>
-                            <option value="organizer" <%= typeof role != 'undefined' && role === 'organizer' ? 'selected' : '' %>>Event Organizer</option>
-                          </select>
-                        </div>
-
-                        <div class="mb-3">
-                          <label for="referralCode" class="form-label">Referral Code (optional)</label>
-                          <input type="text" class="form-control" id="referralCode" name="referralCode" placeholder="Enter Refer Code if Exist">
-                        </div>
-
-                        <div class="d-flex justify-content-between mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="checkbox-signin">
-                                <label class="form-check-label" for="checkbox-signin">I agree to all <a href="#!" class="link-dark text-decoration-underline">Terms & Condition</a> </label>
-                            </div>
-                        </div>
-
-                        <div class="d-grid">
-                            <button class="btn btn-primary" type="submit">Sign Up</button>
-                        </div>
-                    </form>
-
-                    <p class="text-danger fs-14 mb-4">Already have an account? <a href="/login" class="fw-semibold text-dark ms-1">Login !</a></p>
-
-                    <p class="mt-auto mb-0">
-                        <script>document.write(new Date().getFullYear())</script> © Boron - By <span class="fw-bold text-decoration-underline text-uppercase text-reset fs-12">Coderthemes</span>
-                    </p>
-                </div>
+<div class="container py-5">
+    <div class="row">
+      <div class="col-md-6 mx-auto">
+        <div class="card shadow">
+          <div class="card-body p-5">
+            <h1 class="text-center mb-4">Create Account</h1>
+            
+            <form action="/auth/register" method="POST">
+              <div class="mb-3">
+                <label for="fullName" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="fullName" name="fullName" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phone" name="phone" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+              </div>
+              
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="termsCheck" required>
+                <label class="form-check-label" for="termsCheck">
+                  I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                </label>
+              </div>
+              
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Register</button>
+              </div>
+            </form>
+            
+            <hr class="my-4">
+            
+            <div class="text-center">
+              <p class="mb-0">Already have an account?</p>
+              <a href="/auth/login" class="btn btn-outline-primary mt-2">Login</a>
             </div>
+          </div>
         </div>
+      </div>
     </div>
-
-    <!-- Vendor js -->
-    <script src="/assets/js/vendor.min.js"></script>
-
-    <!-- App js -->
-    <script src="/assets/js/app.js"></script>
-
-</body>
-
-</html>
+  </div>
+  
+  <!-- Terms and Conditions Modal -->
+  <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <h6>1. Acceptance of Terms</h6>
+          <p>By registering for an account, you agree to be bound by these Terms and Conditions.</p>
+          
+          <h6>2. Account Registration</h6>
+          <p>You agree to provide accurate, current, and complete information during the registration process.</p>
+          
+          <h6>3. User Conduct</h6>
+          <p>You agree not to use the service for any illegal or unauthorized purpose.</p>
+          
+          <h6>4. Privacy Policy</h6>
+          <p>Your use of our service is also governed by our Privacy Policy.</p>
+          
+          <h6>5. Termination</h6>
+          <p>We reserve the right to terminate or suspend your account at our sole discretion.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>

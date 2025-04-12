@@ -1,486 +1,822 @@
 const Event = require('../models/Event');
-const { TicketType } = require('../models/Ticket');
-const Speaker = require('../models/Speaker');
-const User = require('../models/User');
-const { validationResult } = require('express-validator');
-const fs = require('fs');
-const path = require('path');
+const EventCategory = require('../models/EventCategory');
+const Sponsor = require('../models/Sponsor');
+const Ticket = require('../models/Ticket');
 const { Op } = require('sequelize');
+const upload = require('../middleware/upload');
+const logger = require('../utils/logger');
+const dateFormatter = require('../utils/dateFormatter');
+const sequelize = require('../config/database');
 
+// List all events
+exports.getAllEvents = async (req, res) => {
+  try {
+    const events = await Event.findAll({
+      include: [
+        { model: EventCategory, as: 'category' }
+      ],
+      order: [['startDate', 'DESC']]
+    });
+    
+    res.render('events/index', {
+      title: 'All Events',
+      events,
+      dateFormatter,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Error fetching events', { error: error.message });
+    req.flash('error', 'Failed to fetch events');
+    res.redirect('/dashboard');
+  }
+};
 
-module.exports = {
-  getAllEvents: async (req, res) => {
-    try {
-      const events = await Event.findAll({
-        include: [{
-          model: User,
-          as: 'organizer',
-          attributes: ['name']
-        }],
-        order: [['startDate', 'ASC']]
+// Show create event form
+exports.getCreateEvent = async (req, res) => {
+  try {
+    const categories = await EventCategory.findAll();
+    
+    res.render('events/create', {
+      title: 'Create Event',
+      categories,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Error loading create event page', { error: error.message });
+    req.flash('error', 'Failed to load create event page');
+    res.redirect('/events');
+  }
+};
+
+// Process event creation
+exports.postCreateEvent = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const {
+      title,
+      description,
+      categoryId,
+      startDate,
+      endDate,
+      venue,
+      address,
+      capacity,
+      isPublished
+    } = req.body;
+    
+    // Check if there's already an ongoing event
+    if (req.body.status === 'Ongoing') {
+      const ongoingEvent = await Event.findOne({
+        where: {
+          status: 'Ongoing'
+        },
+        transaction
       });
-
-      res.render('events/index', { 
-        title: 'All Events',
-        events
-      });
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      req.flash('error_msg', 'Error loading events');
-      res.redirect('/');
-    }
-  },
-
-  // Get event by ID
-  getEventById: async (req, res) => {
-    try {
-      const eventId = req.params.id;
       
-      const event = await Event.findByPk(eventId, {
-        include: [
-          {
-            model: User,
-            as: 'organizer',
-            attributes: ['id', 'name', 'email']
-          },
-          {
-            model: TicketType,
-          },
-          {
-            model: Speaker,
-          }
-        ]
-      });
-
-
-      const speakers = await Speaker.findAll({ where: { eventId } });
-      const ticketTypes = await TicketType.findAll({where:{eventId}});
-
-      if (!event) {
-        req.flash('error_msg', 'Event not found');
-        return res.redirect('/events');
+      if (ongoingEvent) {
+        await transaction.rollback();
+        req.flash('error', 'There is already an ongoing event. Only one event can be ongoing at a time.');
+        return res.redirect('/events/create');
       }
-
-      // If event is not published and user is not admin or organizer
-      if (!event.isPublished && 
-          (!req.user || (req.user.id !== event.organizerId && req.user.role !== 'super_admin'))) {
-        req.flash('error_msg', 'Event is not available');
-        return res.redirect('/events');
-      }
-
-      res.render('events/details', { 
-        title: event.title,
-        event,
-        speakers,
-        ticketTypes
-      });
-    } catch (err) {
-      console.error('Error fetching event:', err);
-      req.flash('error_msg', 'Error loading event details');
-      res.redirect('/events');
     }
-  },
+    
+    // Create event
+    const event = await Event.create({
+      title,
+      description,
+      categoryId,
+      startDate,
+      endDate,
+      venue,
+      address,
+      status: req.body.status,
+      featuredImage: req.file ? `/uploads/events/${req.file.filename}` : null,
+      capacity,
+      isPublished: isPublished === 'on',
+      createdBy: req.user.id
+    }, { transaction });
+    
+    await transaction.commit();
+    
+    logger.info(`Event created: ${title}`, { userId: req.user.id, eventId: event.id });
+    
+    req.flash('success', 'Event created successfully');
+    res.redirect(`/events/${event.id}`);
+  } catch (error) {
+    await transaction.rollback();
+    logger.error('Event creation error', { error: error.message, userId: req.user.id });
+    req.flash('error', 'Failed to create event');
+    res.redirect('/events/create');
+  }
+};
 
-  // Render create event form
-  getCreateEvent: (req, res) => {
-    res.render('events/create', { title: 'Create Event' });
-  },
-
-  // Create new event
-  createEvent: async (req, res) => {
-    try {
-      const { 
-        title, description, category, startDate, endDate, 
-        venue, venueAddress, maxAttendees 
-      } = req.body;
-
-      // Validation
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.render('events/create', {
-          title: 'Create Event',
-          errors: errors.array(),
-          formData: req.body
-        });
-      }
-
-      // Handle file upload
-      let bannerImage = null;
-      if (req.file) {
-        bannerImage = `/uploads/events/${path.basename(req.file.path)}`;
-      }
-
-      // Create event
-      const event = await Event.create({
-        title,
-        description,
-        category,
-        startDate,
-        endDate,
-        venue,
-        venueAddress,
-        maxAttendees: maxAttendees || 100,
-        organizerId: req.user.id,
-        status: 'draft',
-        bannerImage
-      });
-
-      req.flash('success_msg', 'Event created successfully');
-      res.redirect(`/events/${event.id}/edit`);
-    } catch (err) {
-      console.error('Error creating event:', err);
-      req.flash('error_msg', 'Error creating event');
-      res.redirect('/events/create');
+// Show single event
+exports.getEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id, {
+      include: [
+        { model: EventCategory, as: 'category' },
+        { model: Sponsor, as: 'sponsors' },
+        { model: Ticket, as: 'tickets' }
+      ]
+    });
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
     }
-  },
+    
+    res.render('events/show', {
+      title: event.title,
+      event,
+      dateFormatter,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Error fetching event', { error: error.message });
+    req.flash('error', 'Failed to fetch event details');
+    res.redirect('/events');
+  }
+};
 
-  // Render edit event form
-  getEditEvent: async (req, res) => {
-    try {
-      const eventId = req.params.id;
+// Show edit event form
+exports.getEditEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    const categories = await EventCategory.findAll();
+    
+    res.render('events/edit', {
+      title: `Edit ${event.title}`,
+      event,
+      categories,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Error loading edit event page', { error: error.message });
+    req.flash('error', 'Failed to load edit page');
+    res.redirect('/events');
+  }
+};
+
+// Process event update
+exports.postUpdateEvent = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      categoryId,
+      startDate,
+      endDate,
+      venue,
+      address,
+      capacity,
+      isPublished
+    } = req.body;
+    
+    const event = await Event.findByPk(id, { transaction });
+    
+    if (!event) {
+      await transaction.rollback();
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    // Check if there's already an ongoing event
+    if (req.body.status === 'Ongoing' && event.status !== 'Ongoing') {
+      const ongoingEvent = await Event.findOne({
+        where: {
+          status: 'Ongoing',
+          id: { [Op.ne]: id }
+        },
+        transaction
+      });
       
-      const event = await Event.findByPk(eventId, {
-        include: [
-          {
-            model: TicketType
-          }
-        ]
-      });
-
-      if (!event) {
-        req.flash('error_msg', 'Event not found');
-        return res.redirect('/dashboard');
+      if (ongoingEvent) {
+        await transaction.rollback();
+        req.flash('error', 'There is already an ongoing event. Only one event can be ongoing at a time.');
+        return res.redirect(`/events/${id}/edit`);
       }
-
-      res.render('events/edit', { 
-        title: 'Edit Event',
-        event
-      });
-    } catch (err) {
-      console.error('Error fetching event for edit:', err);
-      req.flash('error_msg', 'Error loading event');
-      res.redirect('/dashboard');
     }
-  },
+    
+    // Update event
+    event.title = title;
+    event.description = description;
+    event.categoryId = categoryId;
+    event.startDate = startDate;
+    event.endDate = endDate;
+    event.venue = venue;
+    event.address = address;
+    event.status = req.body.status;
+    event.capacity = capacity;
+    event.isPublished = isPublished === 'on';
+    
+    if (req.file) {
+      event.featuredImage = `/uploads/events/${req.file.filename}`;
+    }
+    
+    await event.save({ transaction });
+    
+    await transaction.commit();
+    
+    logger.info(`Event updated: ${title}`, { userId: req.user.id, eventId: event.id });
+    
+    req.flash('success', 'Event updated successfully');
+    res.redirect(`/events/${id}`);
+  } catch (error) {
+    await transaction.rollback();
+    logger.error('Event update error', { error: error.message, userId: req.user.id });
+    req.flash('error', 'Failed to update event');
+    res.redirect(`/events/${req.params.id}/edit`);
+  }
+};
 
-  // Update event
-  updateEvent: async (req, res) => {
-    try {
-      const eventId = req.params.id;
-      const { 
-        title, description, category, startDate, endDate, 
-        venue, venueAddress, maxAttendees, status 
-      } = req.body;
+// Delete event
+exports.deleteEvent = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id, { transaction });
+    
+    if (!event) {
+      await transaction.rollback();
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    // Check if event has tickets or bookings
+    const tickets = await Ticket.findAll({
+      where: { eventId: id },
+      transaction
+    });
+    
+    if (tickets.length > 0) {
+      await transaction.rollback();
+      req.flash('error', 'Cannot delete event with tickets. Please delete all tickets first.');
+      return res.redirect(`/events/${id}`);
+    }
+    
+    // Delete sponsors
+    await Sponsor.destroy({
+      where: { eventId: id },
+      transaction
+    });
+    
+    // Delete event
+    await event.destroy({ transaction });
+    
+    await transaction.commit();
+    
+    logger.info(`Event deleted: ${event.title}`, { userId: req.user.id, eventId: id });
+    
+    req.flash('success', 'Event deleted successfully');
+    res.redirect('/events');
+  } catch (error) {
+    await transaction.rollback();
+    logger.error('Event deletion error', { error: error.message, userId: req.user.id });
+    req.flash('error', 'Failed to delete event');
+    res.redirect(`/events/${req.params.id}`);
+  }
+};
 
-      // Validation
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.render('events/edit', {
-          title: 'Edit Event',
-          errors: errors.array(),
-          event: { id: eventId, ...req.body }
-        });
+// Event categories
+exports.getEventCategories = async (req, res) => {
+  try {
+    const categories = await EventCategory.findAll();
+    
+    res.render('events/categories', {
+      title: 'Event Categories',
+      categories,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Error fetching event categories', { error: error.message });
+    req.flash('error', 'Failed to fetch categories');
+    res.redirect('/dashboard');
+  }
+};
+
+// Create event category
+exports.postCreateCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    await EventCategory.create({
+      name,
+      description,
+      icon: req.file ? `/uploads/categories/${req.file.filename}` : null
+    });
+    
+    logger.info(`Event category created: ${name}`, { userId: req.user.id });
+    
+    req.flash('success', 'Category created successfully');
+    res.redirect('/events/categories');
+  } catch (error) {
+    logger.error('Category creation error', { error: error.message, userId: req.user.id });
+    req.flash('error', 'Failed to create category');
+    res.redirect('/events/categories');
+  }
+};
+
+// Update event category
+exports.postUpdateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    
+    const category = await EventCategory.findByPk(id);
+    
+    if (!category) {
+      req.flash('error', 'Category not found');
+      return res.redirect('/events/categories');
+    }
+    
+    category.name = name;
+    category.description = description;
+    
+    if (req.file) {
+      category.icon = `/uploads/categories/${req.file.filename}`;
+    }
+    
+    await category.save();
+    
+    logger.info(`Event category updated: ${name}`, { userId: req.user.id, categoryId: id });
+    
+    req.flash('success', 'Category updated successfully');
+    res.redirect('/events/categories');
+  } catch (error) {
+    logger.error('Category update error', { error: error.message, userId: req.user.id });
+    req.flash('error', 'Failed to update category');
+    res.redirect('/events/categories');
+  }
+};
+
+// Delete event category
+exports.deleteCategory = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { id } = req.params;
+    
+    // Check if category is used in any events
+    const events = await Event.findAll({
+      where: { categoryId: id },
+      transaction
+    });
+    
+    if (events.length > 0) {
+      await transaction.rollback();
+      req.flash('error', 'Cannot delete category that is used in events');
+      return res.redirect('/events/categories');
+    }
+    
+    await EventCategory.destroy({
+      where: { id },
+      transaction
+    });
+    
+    await transaction.commit();
+    
+    logger.info(`Event category deleted`, { userId: req.user.id, categoryId: id });
+    
+    req.flash('success', 'Category deleted successfully');
+    res.redirect('/events/categories');
+  } catch (error) {
+    await transaction.rollback();
+    logger.error('Category deletion error', { error: error.message, userId: req.user.id });
+    req.flash('error', 'Failed to delete category');
+    res.redirect('/events/categories');
+  }
+};
+
+// Sponsors
+exports.getEventSponsors = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    const sponsors = await Sponsor.findAll({
+      where: { eventId: id }
+    });
+    
+    res.render('events/sponsors', {
+      title: `Sponsors - ${event.title}`,
+      event,
+      sponsors,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Error fetching sponsors', { error: error.message });
+    req.flash('error', 'Failed to fetch sponsors');
+    res.redirect('/events');
+  }
+};
+
+// Add sponsor
+exports.postAddSponsor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, type, website } = req.body;
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    await Sponsor.create({
+      name,
+      type,
+      website,
+      eventId: id,
+      logo: req.file ? `/uploads/sponsors/${req.file.filename}` : null
+    });
+    
+    logger.info(`Sponsor added to event: ${event.title}`, { userId: req.user.id, eventId: id });
+    
+    req.flash('success', 'Sponsor added successfully');
+    res.redirect(`/events/${id}/sponsors`);
+  } catch (error) {
+    logger.error('Sponsor creation error', { error: error.message });
+    req.flash('error', 'Failed to add sponsor');
+    res.redirect(`/events/${req.params.id}/sponsors`);
+  }
+};
+
+// Update sponsor
+exports.postUpdateSponsor = async (req, res) => {
+  try {
+    const { id, sponsorId } = req.params;
+    const { name, type, website } = req.body;
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    const sponsor = await Sponsor.findOne({
+      where: {
+        id: sponsorId,
+        eventId: id
       }
+    });
+    
+    if (!sponsor) {
+      req.flash('error', 'Sponsor not found');
+      return res.redirect(`/events/${id}/sponsors`);
+    }
+    
+    sponsor.name = name;
+    sponsor.type = type;
+    sponsor.website = website;
+    
+    if (req.file) {
+      sponsor.logo = `/uploads/sponsors/${req.file.filename}`;
+    }
+    
+    await sponsor.save();
+    
+    logger.info(`Sponsor updated: ${name}`, { userId: req.user.id, sponsorId });
+    
+    req.flash('success', 'Sponsor updated successfully');
+    res.redirect(`/events/${id}/sponsors`);
+  } catch (error) {
+    logger.error('Sponsor update error', { error: error.message });
+    req.flash('error', 'Failed to update sponsor');
+    res.redirect(`/events/${req.params.id}/sponsors`);
+  }
+};
 
-      const event = await Event.findByPk(eventId);
-      
-      if (!event) {
-        req.flash('error_msg', 'Event not found');
-        return res.redirect('/dashboard');
+// Delete sponsor
+exports.deleteSponsor = async (req, res) => {
+  try {
+    const { id, sponsorId } = req.params;
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    const sponsor = await Sponsor.findOne({
+      where: {
+        id: sponsorId,
+        eventId: id
       }
+    });
+    
+    if (!sponsor) {
+      req.flash('error', 'Sponsor not found');
+      return res.redirect(`/events/${id}/sponsors`);
+    }
+    
+    await sponsor.destroy();
+    
+    logger.info(`Sponsor deleted: ${sponsor.name}`, { userId: req.user.id, sponsorId });
+    
+    req.flash('success', 'Sponsor deleted successfully');
+    res.redirect(`/events/${id}/sponsors`);
+  } catch (error) {
+    logger.error('Sponsor deletion error', { error: error.message });
+    req.flash('error', 'Failed to delete sponsor');
+    res.redirect(`/events/${req.params.id}/sponsors`);
+  }
+};
 
-      // Handle file upload
-      let bannerImage = event.bannerImage;
-      if (req.file) {
-        // Delete old image if exists
-        if (event.bannerImage) {
-          const oldImagePath = path.join(__dirname, '../public', event.bannerImage);
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-          }
+// Generate event report
+exports.getEventReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id, {
+      include: [
+        { model: EventCategory, as: 'category' },
+        { model: Sponsor, as: 'sponsors' },
+        { model: Ticket, as: 'tickets' }
+      ]
+    });
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    // Get booking stats
+    const bookingStats = await Booking.findAll({
+      attributes: [
+        'status',
+        'paymentMethod',
+        [sequelize.fn('count', sequelize.col('id')), 'count'],
+        [sequelize.fn('sum', sequelize.col('totalAmount')), 'amount']
+      ],
+      where: {
+        eventId: id
+      },
+      group: ['status', 'paymentMethod']
+    });
+    
+    // Get ticket sales breakdown
+    const ticketSales = await Booking.findAll({
+      attributes: [
+        'ticketId',
+        [sequelize.fn('sum', sequelize.col('quantity')), 'quantity'],
+        [sequelize.fn('sum', sequelize.col('totalAmount')), 'amount']
+      ],
+      where: {
+        eventId: id,
+        status: 'Confirmed'
+      },
+      include: [
+        {
+          model: Ticket,
+          as: 'ticket',
+          attributes: ['type', 'price', 'quantity']
         }
-        bannerImage = `/uploads/events/${path.basename(req.file.path)}`;
+      ],
+      group: ['ticketId']
+    });
+    
+    // Calculate total revenue
+    const totalRevenue = bookingStats.reduce((sum, stat) => {
+      if (stat.dataValues.status === 'Confirmed') {
+        return sum + parseFloat(stat.dataValues.amount || 0);
       }
+      return sum;
+    }, 0);
+    
+    // Calculate ticket sales percentage
+    const ticketSalesData = ticketSales.map(sale => {
+      const soldPercentage = (parseInt(sale.dataValues.quantity) / sale.ticket.quantity) * 100;
+      return {
+        type: sale.ticket.type,
+        price: sale.ticket.price,
+        sold: parseInt(sale.dataValues.quantity),
+        total: sale.ticket.quantity,
+        soldPercentage,
+        revenue: parseFloat(sale.dataValues.amount || 0)
+      };
+    });
+    
+    res.render('events/report', {
+      title: `Report - ${event.title}`,
+      event,
+      bookingStats,
+      ticketSales: ticketSalesData,
+      totalRevenue,
+      dateFormatter,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Event report error', { error: error.message });
+    req.flash('error', 'Failed to generate event report');
+    res.redirect('/events');
+  }
+};
 
-      // Update event
-      await event.update({
-        title,
-        description,
-        category,
-        startDate,
-        endDate,
-        venue,
-        venueAddress,
-        maxAttendees: maxAttendees || 100,
-        status: status || event.status,
-        bannerImage
-      });
-
-      req.flash('success_msg', 'Event updated successfully');
-      res.redirect(`/events/${event.id}/edit`);
-    } catch (err) {
-      console.error('Error updating event:', err);
-      req.flash('error_msg', 'Error updating event');
-      res.redirect(`/events/${req.params.id}/edit`);
+// Clone event
+exports.getCloneEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id, {
+      include: [
+        { model: Ticket, as: 'tickets' }
+      ]
+    });
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
     }
-  },
+    
+    const categories = await EventCategory.findAll();
+    
+    res.render('events/clone', {
+      title: `Clone Event - ${event.title}`,
+      event,
+      categories,
+      messages: req.flash()
+    });
+  } catch (error) {
+    logger.error('Clone event page error', { error: error.message });
+    req.flash('error', 'Failed to load clone event page');
+    res.redirect('/events');
+  }
+};
 
-  // Publish/unpublish event
-  togglePublishEvent: async (req, res) => {
-    try {
-      const eventId = req.params.id;
+// Process event cloning
+exports.postCloneEvent = async (req, res) => {
+  const transaction = await sequelize.transaction();
   
-      const event = await Event.findByPk(eventId);
-  
-      if (!event) {
-        req.flash('error_msg', 'Event not found');
-        return res.redirect('/dashboard');
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      categoryId,
+      startDate,
+      endDate,
+      venue,
+      address,
+      capacity,
+      cloneTickets
+    } = req.body;
+    
+    // Get original event
+    const sourceEvent = await Event.findByPk(id, {
+      include: [
+        { model: Ticket, as: 'tickets' }
+      ],
+      transaction
+    });
+    
+    if (!sourceEvent) {
+      await transaction.rollback();
+      req.flash('error', 'Source event not found');
+      return res.redirect('/events');
+    }
+    
+    // Create new event
+    const newEvent = await Event.create({
+      title,
+      description,
+      categoryId,
+      startDate,
+      endDate,
+      venue,
+      address,
+      status: 'Upcoming',
+      featuredImage: req.file ? `/uploads/events/${req.file.filename}` : sourceEvent.featuredImage,
+      capacity,
+      isPublished: false,
+      createdBy: req.user.id
+    }, { transaction });
+    
+    // Clone tickets if requested
+    if (cloneTickets === 'on' && sourceEvent.tickets.length > 0) {
+      for (const ticket of sourceEvent.tickets) {
+        await Ticket.create({
+          eventId: newEvent.id,
+          type: ticket.type,
+          price: ticket.price,
+          quantity: ticket.quantity,
+          description: ticket.description,
+          isActive: true,
+          saleStartDate: new Date(startDate),
+          saleEndDate: new Date(endDate)
+        }, { transaction });
       }
-  
-      // Check if trying to publish (not unpublish)
-      if (!event.isPublished) {
-        // Ensure the event has at least one ticket type
-        const ticketTypes = await TicketType.findAll({ where: { eventId } });
-        if (ticketTypes.length === 0) {
-          req.flash('error_msg', 'Cannot publish event without ticket types');
-          return res.redirect(`/events/${eventId}/edit`);
+    }
+    
+    await transaction.commit();
+    
+    logger.info(`Event cloned: ${sourceEvent.title} -> ${title}`, { userId: req.user.id, newEventId: newEvent.id });
+    
+    req.flash('success', 'Event cloned successfully');
+    res.redirect(`/events/${newEvent.id}`);
+  } catch (error) {
+    await transaction.rollback();
+    logger.error('Event cloning error', { error: error.message });
+    req.flash('error', 'Failed to clone event');
+    res.redirect(`/events/${req.params.id}`);
+  }
+};
+
+// Toggle event publication status
+exports.toggleEventPublishStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    event.isPublished = !event.isPublished;
+    await event.save();
+    
+    const action = event.isPublished ? 'published' : 'unpublished';
+    logger.info(`Event ${action}: ${event.title}`, { userId: req.user.id, eventId: id });
+    
+    req.flash('success', `Event ${action} successfully`);
+    res.redirect(`/events/${id}`);
+  } catch (error) {
+    logger.error('Event publish toggle error', { error: error.message });
+    req.flash('error', 'Failed to update event publication status');
+    res.redirect(`/events/${req.params.id}`);
+  }
+};
+
+// Update event status
+exports.updateEventStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['Upcoming', 'Ongoing', 'Completed'].includes(status)) {
+      req.flash('error', 'Invalid status');
+      return res.redirect(`/events/${id}`);
+    }
+    
+    const event = await Event.findByPk(id);
+    
+    if (!event) {
+      req.flash('error', 'Event not found');
+      return res.redirect('/events');
+    }
+    
+    // Check if there's already an ongoing event
+    if (status === 'Ongoing') {
+      const ongoingEvent = await Event.findOne({
+        where: {
+          status: 'Ongoing',
+          id: { [Op.ne]: id }
         }
-  
-        // Check if another event is already published
-        const publishedEvent = await Event.findOne({
-          where: {
-            isPublished: true,
-            id: { [Op.ne]: eventId } // not the current event
-          }
-        });
-  
-        if (publishedEvent) {
-          req.flash('error_msg', `Another event (${publishedEvent.title}) is already published. Unpublish it first.`);
-          return res.redirect(`/events/${eventId}`);
-        }
-      }
-  
-      // Toggle publish status
-      await event.update({
-        isPublished: !event.isPublished
       });
-  
-      const message = event.isPublished
-        ? 'Event published successfully'
-        : 'Event unpublished';
-      req.flash('success_msg', message);
-      res.redirect(`/events/${eventId}`);
-    } catch (err) {
-      console.error('Error toggling event publish status:', err);
-      req.flash('error_msg', 'Error updating event');
-      res.redirect(`/events/${req.params.id}`);
+      
+      if (ongoingEvent) {
+        req.flash('error', 'There is already an ongoing event. Only one event can be ongoing at a time.');
+        return res.redirect(`/events/${id}`);
+      }
     }
-  },
-  
-
-  // Delete event
-  deleteEvent: async (req, res) => {
-    try {
-      const eventId = req.params.id;
-      
-      const event = await Event.findByPk(eventId);
-      
-      if (!event) {
-        req.flash('error_msg', 'Event not found');
-        return res.redirect('/dashboard');
-      }
-
-      // Delete event banner if exists
-      if (event.bannerImage) {
-        const imagePath = path.join(__dirname, '../public', event.bannerImage);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-
-      // Delete event (cascade will handle related records)
-      await event.destroy();
-
-      req.flash('success_msg', 'Event deleted successfully');
-      res.redirect('/dashboard');
-    } catch (err) {
-      console.error('Error deleting event:', err);
-      req.flash('error_msg', 'Error deleting event');
-      res.redirect('/dashboard');
-    }
-  },
-
-  // Manage event speakers
-  getManageSpeakers: async (req, res) => {
-    try {
-      const eventId = req.params.id;
-      
-      const [event, speakers] = await Promise.all([
-        Event.findByPk(eventId),
-        Speaker.findAll({ where: { eventId } })
-      ]);
-      
-      if (!event) {
-        req.flash('error_msg', 'Event not found');
-        return res.redirect('/dashboard');
-      }
-
-      res.render('events/speakers', { 
-        title: 'Manage Speakers',
-        event,
-        speakers
-      });
-    } catch (err) {
-      console.error('Error loading speakers:', err);
-      req.flash('error_msg', 'Error loading speakers');
-      res.redirect(`/events/${req.params.id}/edit`);
-    }
-  },
-  
-
-  // Add new speaker
-  addSpeaker: async (req, res) => {
-    try {
-      const eventId = req.params.id;
-      const { 
-        name, bio, designation, organization, 
-        speakerType, sessionTopic, sessionTime, sessionDuration 
-      } = req.body;
-
-      // Validation
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.render('events/speakers', {
-          title: 'Manage Speakers',
-          errors: errors.array(),
-          formData: req.body,
-          event: { id: eventId }
-        });
-      }
-
-      // Handle file upload
-      let photo = null;
-      if (req.file) {
-        photo = `/uploads/speakers/${path.basename(req.file.path)}`;
-      }
-
-      // Create speaker
-      await Speaker.create({
-        eventId,
-        name,
-        bio,
-        designation,
-        organization,
-        speakerType,
-        sessionTopic,
-        sessionTime,
-        sessionDuration,
-        photo
-      });
-
-      req.flash('success_msg', 'Speaker added successfully');
-      res.redirect(`/events/${eventId}/speakers`);
-    } catch (err) {
-      console.error('Error adding speaker:', err);
-      req.flash('error_msg', 'Error adding speaker');
-      res.redirect(`/events/${req.params.id}/speakers`);
-    }
-  },
-
-  // Update speaker
-  updateSpeaker: async (req, res) => {
-    try {
-      const eventId = req.params.id;
-      const speakerId = req.params.speakerId;
-      
-      const { 
-        name, bio, designation, organization, 
-        speakerType, sessionTopic, sessionTime, sessionDuration 
-      } = req.body;
-
-      // Validation
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.render('events/speakers', {
-          title: 'Edit Speaker',
-          errors: errors.array(),
-          speaker: { id: speakerId, ...req.body },
-          event: { id: eventId }
-        });
-      }
-
-      const speaker = await Speaker.findByPk(speakerId);
-      
-      if (!speaker || speaker.eventId !== eventId) {
-        req.flash('error_msg', 'Speaker not found');
-        return res.redirect(`/events/${eventId}/speakers`);
-      }
-
-      // Handle file upload
-      let photo = speaker.photo;
-      if (req.file) {
-        // Delete old image if exists
-        if (speaker.photo) {
-          const oldImagePath = path.join(__dirname, '../public', speaker.photo);
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-          }
-        }
-        photo = `/uploads/speakers/${path.basename(req.file.path)}`;
-      }
-
-      // Update speaker
-      await speaker.update({
-        name,
-        bio,
-        designation,
-        organization,
-        speakerType,
-        sessionTopic,
-        sessionTime,
-        sessionDuration,
-        photo
-      });
-
-      req.flash('success_msg', 'Speaker updated successfully');
-      res.redirect(`/events/${eventId}/speakers`);
-    } catch (err) {
-      console.error('Error updating speaker:', err);
-      req.flash('error_msg', 'Error updating speaker');
-      res.redirect(`/events/${req.params.id}/speakers`);
-    }
-  },
-
-  // Delete speaker
-  deleteSpeaker: async (req, res) => {
-    try {
-      const eventId = req.params.id;
-      const speakerId = req.params.speakerId;
-      
-      const speaker = await Speaker.findByPk(speakerId);
-      
-      if (!speaker || speaker.eventId !== eventId) {
-        req.flash('error_msg', 'Speaker not found');
-        return res.redirect(`/events/${eventId}/speakers`);
-      }
-
-      // Delete speaker photo if exists
-      if (speaker.photo) {
-        const imagePath = path.join(__dirname, '../public', speaker.photo);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-
-      // Delete speaker
-      await speaker.destroy();
-
-      req.flash('success_msg', 'Speaker deleted successfully');
-      res.redirect(`/events/${eventId}/speakers`);
-    } catch (err) {
-      console.error('Error deleting speaker:', err);
-      req.flash('error_msg', 'Error deleting speaker');
-      res.redirect(`/events/${req.params.id}/speakers`);
-    }
+    
+    event.status = status;
+    await event.save();
+    
+    logger.info(`Event status updated to ${status}: ${event.title}`, { userId: req.user.id, eventId: id });
+    
+    req.flash('success', 'Event status updated successfully');
+    res.redirect(`/events/${id}`);
+  } catch (error) {
+    logger.error('Event status update error', { error: error.message });
+    req.flash('error', 'Failed to update event status');
+    res.redirect(`/events/${req.params.id}`);
   }
 };
