@@ -1,0 +1,4 @@
+[2025-04-24 10:56:52] [ERROR] Database connection error {"timestamp":"2025-04-24 10:56:52","level":"ERROR","message":"Database connection error","error":""}
+[2025-04-24 10:57:16] [ERROR] Database connection error {"timestamp":"2025-04-24 10:57:16","level":"ERROR","message":"Database connection error","error":"Unknown database 'event'"}
+[2025-04-24 10:58:27] [INFO] Database connected 
+[2025-04-24 10:58:27] [INFO] Server running on port 3000 
